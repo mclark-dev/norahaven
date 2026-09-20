@@ -7,7 +7,9 @@
 //
 // Env vars required on the Vercel project:
 //   SUPABASE_URL                e.g. https://xxxx.supabase.co
-//   SUPABASE_SERVICE_ROLE_KEY   service role key (server-side only)
+//   SUPABASE_SERVICE_ROLE_KEY   a server-side key. Either works:
+//                                 - legacy  service_role  (a JWT)
+//                                 - current sb_secret_...  (not a JWT)
 
 const BUCKET = 'story-pages-new';
 const WIDTH = 1600;          // Garden display width; originals are 2400px
@@ -35,7 +37,11 @@ module.exports = async function handler(req, res) {
   if (!/^[0-9a-f]{32}$/.test(f)) return res.status(400).json({ error: 'bad file id' });
   if (!Number.isInteger(p) || p < 1 || p > 100) return res.status(400).json({ error: 'bad page' });
 
-  const auth = { apikey: key, Authorization: 'Bearer ' + key };
+  // The newer sb_secret_ keys are not JWTs: sending them as a Bearer token makes
+  // the gateway try to parse one and reject the request. Send apikey only for
+  // those; legacy service_role JWTs still need the Authorization header.
+  const isSecretKey = key.startsWith('sb_secret_');
+  const auth = isSecretKey ? { apikey: key } : { apikey: key, Authorization: 'Bearer ' + key };
 
   try {
     // 1. storage path for this page
