@@ -11,6 +11,8 @@
 //                                 - legacy  service_role  (a JWT)
 //                                 - current sb_secret_...  (not a JWT)
 
+const { authed } = require('./_auth.js');
+
 const BUCKET = 'story-pages-new';
 const WIDTH = 1600;          // Garden display width; originals are 2400px
 const SIGN_TTL = 3600;       // seconds
@@ -26,6 +28,8 @@ function encodePath(p) {
 }
 
 module.exports = async function handler(req, res) {
+  if (!authed(req)) return res.status(401).json({ error: 'unauthorized' });
+
   const base = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!base || !key) {
