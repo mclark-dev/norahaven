@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/gorgias-webhook.ts": { "maxDuration": 300 },
+    "api/backtest.ts": { "maxDuration": 300 },
+    "api/ask-poppy.ts": { "maxDuration": 300 },
+    "api/batch-report.ts": { "maxDuration": 300 }
+  },
+  "crons": [
+    { "path": "/api/metrics-cron", "schedule": "0 */6 * * *" },
+    { "path": "/api/batch-report?refresh=1", "schedule": "0 9 * * *" }
+  ],
+  "rewrites": [
+    { "source": "/console", "destination": "/console.html" },
+    { "source": "/", "destination": "/console.html" }
+  ]
+}

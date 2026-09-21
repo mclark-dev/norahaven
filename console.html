@@ -1,0 +1,1511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poppy Console</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#FAF8F3; --surface:#FFFFFF; --line:#E4DFD3; --ink:#25322C; --ink-soft:#5C6A62; --ink-faint:#8A968E;
+  --accent:#3E6B5A; --accent-soft:#E7EFEA;
+  --good:#3E7C4F; --good-soft:#E4F0E6;
+  --warn:#B07C2A; --warn-soft:#F6EDDA;
+  --crit:#A93E32; --crit-soft:#F6E3E0;
+  --flag:#7A5EA8; --flag-soft:#EDE7F6;
+  --shadow:0 1px 3px rgba(37,50,44,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#161D1A; --surface:#1E2622; --line:#313B35; --ink:#E9EDE9; --ink-soft:#A9B4AC; --ink-faint:#77837B;
+    --accent:#7FAE9B; --accent-soft:#243830;
+    --good:#7FBE8E; --good-soft:#22352A;
+    --warn:#D6A458; --warn-soft:#3A2F1C;
+    --crit:#DB8074; --crit-soft:#3E2622;
+    --flag:#AC96D8; --flag-soft:#2E2740;
+    --shadow:0 1px 3px rgba(0,0,0,.4);
+  }
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink); font-family:"Public Sans",system-ui,sans-serif; font-size:15px; line-height:1.5; padding-inline:16px; padding-block:0 48px}
+.wrap{max-width:1760px; margin:0 auto}
+section{max-width:920px}
+section#inventory{max-width:none}
+.mono{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums}
+header{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; padding-block:22px 4px}
+.wordmark{font-family:"Fraunces",serif; font-weight:600; font-size:22px}
+.wordmark em{font-style:normal; color:var(--accent)}
+.status-band{background:var(--surface); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); padding:18px 20px; margin-top:14px; display:flex; align-items:center; gap:20px; flex-wrap:wrap}
+.status-light{display:flex; align-items:center; gap:12px; min-width:180px}
+.dot{width:14px; height:14px; border-radius:50%; background:var(--good); box-shadow:0 0 0 5px var(--good-soft); flex:none}
+.dot.draft{background:var(--warn); box-shadow:0 0 0 5px var(--warn-soft)}
+.dot.off{background:var(--crit); box-shadow:0 0 0 5px var(--crit-soft)}
+.status-word{font-family:"Fraunces",serif; font-weight:600; font-size:24px; line-height:1.1}
+.status-sub{font-size:12.5px; color:var(--ink-soft); max-width:44ch}
+.stats{display:flex; gap:26px; flex-wrap:wrap; margin-left:auto}
+.stat{min-width:60px}
+.stat b{display:block; font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; line-height:1.15}
+.stat span{font-size:11.5px; color:var(--ink-soft); letter-spacing:.04em; text-transform:uppercase}
+.stat .warn{color:var(--warn)} .stat .crit{color:var(--crit)} .stat .flagc{color:var(--flag)}
+.mode-seg{display:flex; border:1px solid var(--line); border-radius:10px; overflow:hidden}
+.mode-seg button{appearance:none; border:0; cursor:pointer; font:inherit; font-weight:700; font-size:13.5px; background:var(--surface); color:var(--ink-soft); padding:11px 16px; border-left:1px solid var(--line)}
+.mode-seg button:first-child{border-left:0}
+.mode-seg button[aria-pressed="true"][data-mode="auto"]{background:var(--good); color:#fff}
+.mode-seg button[aria-pressed="true"][data-mode="draft"]{background:var(--warn); color:#fff}
+.mode-seg button[aria-pressed="true"][data-mode="off"]{background:var(--crit); color:#fff}
+nav{display:flex; gap:4px; margin-top:26px; border-bottom:1px solid var(--line); overflow-x:auto}
+.tab{appearance:none; background:none; border:0; cursor:pointer; font:inherit; font-weight:600; font-size:14.5px; color:var(--ink-soft); padding:10px 14px 12px; border-bottom:2px solid transparent; margin-bottom:-1px; white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--accent)}
+section[hidden]{display:none}
+section{padding-top:20px}
+.section-note{font-size:13.5px; color:var(--ink-soft); max-width:62ch; margin:0 0 16px}
+.feed{display:flex; flex-direction:column; gap:10px}
+.entry{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 16px}
+.entry-top{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px}
+.who{font-weight:600}
+.tick{color:var(--ink-faint); font-size:12.5px}
+.chip{font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; border-radius:99px; padding:2px 9px}
+.chip.sent{background:var(--good-soft); color:var(--good)}
+.chip.draft{background:var(--warn-soft); color:var(--warn)}
+.chip.esc{background:var(--crit-soft); color:var(--crit)}
+.chip.skip{background:var(--line); color:var(--ink-soft)}
+.chip.cat{background:var(--accent-soft); color:var(--accent)}
+.q{font-size:13.5px; color:var(--ink-soft); margin:0 0 8px}
+.reply{font-size:14px; border-left:3px solid var(--accent); background:var(--accent-soft); border-radius:0 8px 8px 0; padding:10px 14px; margin:0; white-space:pre-line}
+.entry.escalated .reply{border-left-color:var(--crit); background:var(--crit-soft)}
+.entry-actions{display:flex; gap:10px; margin-top:10px; align-items:center; flex-wrap:wrap}
+.small-btn{appearance:none; cursor:pointer; font:inherit; font-size:13px; font-weight:600; background:none; border:1px solid var(--line); color:var(--ink-soft); border-radius:8px; padding:5px 12px; text-decoration:none}
+.small-btn:hover{border-color:var(--ink-faint); color:var(--ink)}
+.flagged-chip{font-size:12.5px; font-weight:600; color:var(--flag); background:var(--flag-soft); border-radius:99px; padding:3px 11px}
+.empty{background:var(--surface); border:1px dashed var(--line); border-radius:12px; padding:28px 24px; text-align:center; color:var(--ink-soft); font-size:14px}
+h2{font-family:"Fraunces",serif; font-weight:600; font-size:18px; margin:26px 0 10px}
+h2:first-child{margin-top:0}
+.rule-table{background:var(--surface); border:1px solid var(--line); border-radius:12px; overflow:hidden}
+.rule-row{display:flex; align-items:center; gap:14px; padding:13px 16px; border-top:1px solid var(--line); flex-wrap:wrap}
+.rule-row:first-child{border-top:0}
+.rule-name{flex:1 1 200px; min-width:180px}
+.rule-name b{display:block; font-weight:600}
+.rule-name span{font-size:12.5px; color:var(--ink-soft)}
+.seg{display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; flex:none}
+.seg button{appearance:none; border:0; cursor:pointer; font:inherit; font-size:12.5px; font-weight:600; background:var(--surface); color:var(--ink-soft); padding:6px 12px; border-left:1px solid var(--line)}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"][data-v="auto"]{background:var(--good); color:#fff}
+.seg button[aria-pressed="true"][data-v="draft"]{background:var(--warn); color:#fff}
+.seg button[aria-pressed="true"][data-v="human"]{background:var(--ink-soft); color:#fff}
+.seg button[aria-pressed="true"][data-acm="off"]{background:var(--ink-soft); color:#fff}
+.seg button[aria-pressed="true"][data-acm="propose"]{background:var(--warn); color:#fff}
+.seg button[aria-pressed="true"][data-acm="auto"]{background:var(--good); color:#fff}
+.locked{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--crit); flex:none}
+.switch{appearance:none; border:0; cursor:pointer; width:44px; height:25px; border-radius:99px; background:var(--line); position:relative; transition:background .15s; flex:none}
+.switch::after{content:""; position:absolute; top:3px; left:3px; width:19px; height:19px; border-radius:50%; background:var(--surface); box-shadow:var(--shadow); transition:left .15s}
+.switch[aria-checked="true"]{background:var(--good)}
+.switch[aria-checked="true"]::after{left:22px}
+.foot-note{font-size:12.5px; color:var(--ink-faint); margin-top:10px; max-width:64ch}
+.batch-bar{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px}
+.batch-bar .save-btn{margin-top:0}
+.batch-totals{display:flex; gap:26px; flex-wrap:wrap; background:var(--surface); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); padding:14px 18px; margin-bottom:18px}
+.batch-story{background:var(--surface); border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-bottom:14px}
+.batch-story>summary{cursor:pointer; list-style:none; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; padding:12px 16px; font-weight:600}
+.batch-story>summary::-webkit-details-marker{display:none}
+.batch-story>summary .foot-note{margin:0 0 0 auto}
+/* ---- two-level navigation ---- */
+.majors{display:flex; gap:4px; margin-top:18px; border-bottom:2px solid var(--line)}
+.major{appearance:none; border:0; background:none; cursor:pointer; font:600 15px/1 inherit; color:var(--ink-soft); padding:12px 18px 14px; border-radius:10px 10px 0 0}
+.major:hover{color:var(--ink)}
+.major.active{color:var(--accent); background:var(--surface); border:2px solid var(--line); border-bottom:2px solid var(--surface); margin-bottom:-2px}
+.major.adm{margin-left:auto}
+.subs[data-for]{padding:14px 2px 2px}
+
+/* ---- activity toolbar ---- */
+.actbar{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 14px}
+.rangesel{display:inline-flex; border:1px solid var(--line); border-radius:99px; overflow:hidden; margin-left:auto}
+.rangesel button{appearance:none; border:0; background:var(--surface); color:var(--ink-soft); font:600 12.5px/1 inherit; padding:9px 14px; cursor:pointer; border-left:1px solid var(--line)}
+.rangesel button:first-child{border-left:0}
+.rangesel button[aria-pressed=true]{background:var(--accent); color:var(--paper)}
+.customrange{display:none; gap:8px; align-items:center}
+.customrange.on{display:flex}
+.customrange input{background:var(--paper); border:1px solid var(--line); border-radius:8px; color:var(--ink); font:13px inherit; padding:7px 10px}
+
+/* ---- needs-a-human queue ---- */
+.qcard{background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--crit); border-radius:10px; padding:13px 16px; margin-bottom:10px}
+.qcard.amber{border-left-color:var(--warn)}
+.qhead{display:flex; gap:10px; align-items:baseline; flex-wrap:wrap}
+.qhead .subj{font-weight:650; font-size:14.5px}
+.qhead .when{margin-left:auto; color:var(--ink-faint); font-size:12px}
+.tag{display:inline-block; background:var(--paper); border:1px solid var(--line); border-radius:5px; padding:2px 7px; font:600 11px "IBM Plex Mono",monospace; color:var(--ink-soft)}
+.tag.cat{background:var(--accent-soft); border-color:var(--accent); color:var(--accent)}
+.tag.act{background:var(--crit-soft); border-color:var(--crit); color:var(--crit)}
+.qnote{background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-top:9px; font-size:12.5px; white-space:pre-wrap}
+.qacts{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap}
+
+/* ---- knowledge topics ---- */
+.kbhead{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px}
+.kbart{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px 16px; margin-bottom:10px}
+.kbart .t{font-weight:650; font-size:14.5px}
+.kbart .body{color:var(--ink-soft); font-size:13px; margin-top:4px; white-space:pre-wrap}
+.kbart .acts{display:flex; gap:6px; margin-top:8px}
+.editlink,.dellink{appearance:none; border:1px solid var(--line); background:none; color:var(--ink-soft); font:600 11px/1 inherit; padding:5px 10px; border-radius:99px; cursor:pointer}
+.editlink:hover{border-color:var(--accent); color:var(--accent)}
+.dellink:hover{border-color:var(--crit); color:var(--crit)}
+.inlineform{background:var(--surface); border:1px solid var(--accent); border-radius:10px; padding:14px 16px; margin:10px 0; max-width:720px}
+.inlineform label{display:block; font-size:11.5px; font-weight:600; color:var(--ink-soft); margin:8px 0 4px; text-transform:uppercase; letter-spacing:.04em}
+.inlineform input[type=text],.inlineform textarea,.inlineform select{width:100%; background:var(--paper); border:1px solid var(--line); border-radius:8px; color:var(--ink); font:14px/1.45 inherit; padding:9px 12px}
+.inlineform textarea{min-height:130px; resize:vertical}
+.inlineform .row{display:flex; gap:8px; margin-top:12px; align-items:center; flex-wrap:wrap}
+
+/* ---- inventory (two-pool runway) — theme-aware ---- */
+.stabs{display:flex; gap:6px; margin:12px 0 14px; flex-wrap:wrap}
+.stab{border:1px solid var(--line); background:var(--surface); color:var(--ink); font:600 13.5px/1 inherit; padding:9px 15px; border-radius:99px; cursor:pointer; display:flex; align-items:center; gap:7px}
+.stab:hover{border-color:var(--accent)}
+.stab.active{background:var(--accent); border-color:var(--accent); color:var(--paper)}
+.stab .badge{background:var(--crit); color:var(--paper); font-size:11px; font-weight:700; border-radius:99px; padding:2px 7px}
+.stab.active .badge{background:var(--paper); color:var(--crit)}
+.inv-band{display:flex; gap:26px; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:11px 18px; margin-bottom:4px; align-items:center; flex-wrap:wrap; box-shadow:var(--shadow)}
+.inv-band .stat b{display:block; font-size:19px}
+.inv-band .stat span{color:var(--ink-soft); font-size:12px}
+.inv-legend{margin-left:auto; color:var(--ink-soft); font-size:12px; display:flex; gap:13px; align-items:center; flex-wrap:wrap}
+.inv-sw{display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-2px; margin-right:4px}
+.inv-sw.sw-ok{background:var(--surface); border:1px solid var(--line)}
+.inv-sw.sw-pz{background:var(--warn-soft); border:1px solid var(--warn)}
+.inv-sw.sw-out{background:var(--crit)}
+.inv-batchstrip{background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:12.5px}
+.inv-batchstrip .bs-title{font-weight:650; margin-right:8px}
+.inv-batchstrip .bs-note{color:var(--ink-soft)}
+.bchip{display:inline-block; border:1px solid var(--line); border-radius:6px; padding:2px 7px; margin:3px 4px 0 0; font-family:"IBM Plex Mono",monospace; font-size:11.5px; cursor:default; background:var(--paper); color:var(--ink)}
+.bchip.editable{cursor:pointer}
+.bchip.editable:hover{border-color:var(--accent)}
+.bchip.ovr{background:var(--warn-soft); border-color:var(--warn); color:var(--warn)}
+.letterbox{margin:0 0 16px; border:1px solid var(--line); border-radius:8px; overflow:auto; background:var(--surface); box-shadow:var(--shadow)}
+.letterhead{display:flex; gap:10px; align-items:baseline; background:var(--accent-soft); padding:8px 14px; border-bottom:1px solid var(--line); position:sticky; left:0}
+.letterhead .lnum{font-weight:700; font-size:13.5px; color:var(--accent)}
+.letterhead .lsub{color:var(--ink-soft); font-size:12px}
+.letterhead .lrisk{margin-left:auto; color:var(--crit); font-size:12px; font-weight:600}
+table.invgrid{border-collapse:separate; border-spacing:0; width:100%; font-size:12.5px}
+.invgrid th{background:var(--paper); color:var(--ink-soft); font-weight:600; text-align:right; padding:6px 8px; border-bottom:1px solid var(--line); white-space:nowrap; font-size:11px}
+.invgrid th.c-piece,.invgrid th.c-title{text-align:left}
+.invgrid td{padding:5px 8px; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; color:var(--ink)}
+.invgrid tr:last-child td{border-bottom:none}
+.invgrid .c-piece{min-width:70px} .invgrid .c-title{min-width:200px; max-width:280px; text-align:left}
+.invgrid td.c-title{white-space:normal; line-height:1.25; font-size:12px}
+.invgrid .stickL{position:sticky; left:0; background:var(--surface); z-index:2}
+.invgrid .stickL2{position:sticky; left:70px; background:var(--surface); z-index:2; border-right:1px solid var(--line)}
+.invgrid th.stickL,.invgrid th.stickL2{background:var(--paper); z-index:3}
+.invgrid .typ{color:var(--ink-soft); font-size:11px}
+.invgrid td.startcol,.invgrid th.startcol{background:var(--accent-soft); border-left:1px solid var(--line)}
+.invgrid td.totcol,.invgrid th.totcol{background:var(--accent-soft); border-left:1px solid var(--line); font-weight:600}
+.invgrid td.pzcol,.invgrid th.pzcol{background:var(--good-soft); border-left:1px solid var(--line); font-weight:600}
+.invgrid .evcol{font-size:11.5px}
+.invgrid .amberlbl{color:var(--warn); font-weight:600}
+.invgrid .orderlbl{color:var(--crit); font-weight:600}
+.invgrid td.ordernow{background:var(--crit); color:var(--paper); font-weight:800; border-radius:4px}
+.invgrid .endcol{font-weight:700}
+.invgrid .mnum{color:var(--ink-faint); font-weight:500}
+.invgrid .mcell .need{display:block; font-size:10px; color:var(--ink-faint); font-weight:400}
+.invgrid td.mcell.frompz{background:var(--warn-soft); color:var(--warn)}
+.invgrid td.mcell.frompz .need{color:var(--warn); opacity:.6}
+.invgrid td.mcell.runout{background:var(--crit-soft); color:var(--crit)}
+.invgrid td.mcell.runout .need{color:var(--crit); opacity:.6}
+.invgrid td.mcell.deliver-first{outline:2px solid var(--warn); outline-offset:-2px; border-radius:4px; font-weight:700}
+.invgrid td.mcell.runout-first{background:var(--crit); color:var(--paper); font-weight:700; border-radius:4px}
+.invgrid td.mcell.runout-first .need{color:var(--paper); opacity:.7}
+.invgrid td.endcol.runout{background:var(--crit-soft); color:var(--crit)}
+.invgrid tr.rowout td.c-piece{box-shadow:inset 3px 0 0 var(--crit)}
+.invgrid tr.rowamber td.c-piece{box-shadow:inset 3px 0 0 var(--warn)}
+.invgrid td.editcell{cursor:pointer; text-decoration:underline dotted 1px; text-underline-offset:3px}
+.invgrid td.editcell:hover{color:var(--accent)}
+.invgrid td.neg{color:var(--crit); font-weight:600}
+.inv-projstrip{background:var(--accent-soft); border:1px solid var(--line); border-radius:8px; padding:9px 14px; margin-bottom:12px; overflow-x:auto}
+.inv-projstrip>b{color:var(--accent); font-size:12.5px; display:block; margin-bottom:5px}
+.inv-projstrip .pcols{display:flex; gap:16px; white-space:nowrap}
+.inv-projstrip .pcols span{text-align:right}
+.inv-projstrip .pcols b{display:block; font-size:13px; font-variant-numeric:tabular-nums}
+.inv-projstrip .pcols em{display:block; font-style:normal; font-size:10.5px; color:var(--ink-faint)}
+.invgrid tr.batchrow td{background:var(--surface); color:var(--ink-soft); font-size:11.5px}
+.invgrid tr.batchrow td.bcell .bnum{display:block; font-size:10px; color:var(--ink-faint)}
+.invgrid tr.batchrow td.bcell .bmark{display:block; font-size:9.5px; letter-spacing:.04em; text-transform:uppercase; color:var(--warn)}
+.invgrid tr.batchrow td.bcell.best{color:var(--warn)}
+.invgrid tr.batchrow td.bcell.bovr{background:var(--warn-soft); color:var(--warn); font-weight:600}
+.invgrid tr.batchrow td.bcell.beditable{cursor:pointer; text-decoration:underline dotted 1px; text-underline-offset:3px}
+.invgrid tr.batchrow td.bcell.beditable:hover{color:var(--accent)}
+#invModal{position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:60}
+#invModal .box{background:var(--surface); color:var(--ink); border:1px solid var(--line); border-radius:12px; padding:22px 26px; max-width:380px; box-shadow:0 12px 40px rgba(0,0,0,.35); font-size:14px}
+#invModal .box h3{margin:0 0 6px; font-size:15.5px}
+#invModal .box .when{color:var(--ink-soft); font-size:12.5px; margin-top:8px}
+#invModal .box button{margin-top:14px}
+.batch-table{width:100%; border-collapse:collapse; font-size:13.5px}
+.batch-table th{ text-align:right; font-weight:600; color:var(--ink-soft); padding:6px 14px; border-top:1px solid var(--line); background:var(--accent-soft)}
+.batch-table th:first-child{text-align:left}
+.batch-table td{ text-align:right; padding:5px 14px; border-top:1px solid var(--line); font-variant-numeric:tabular-nums}
+.batch-table td:first-child{text-align:left; font-family:"IBM Plex Mono",monospace; font-size:12.5px}
+.batch-act{color:var(--good); font-weight:600}
+.batch-can{color:var(--crit)}
+.batch-warn{background:var(--warn-soft); border:1px solid var(--warn); border-radius:10px; padding:10px 14px; font-size:13.5px; margin-bottom:14px}
+.ap-log{background:var(--surface); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); padding:16px; min-height:220px; max-height:52vh; overflow-y:auto; display:flex; flex-direction:column; gap:10px}
+.ap-hello{font-size:13.5px; color:var(--ink-soft)}
+.ap-msg{max-width:85%; padding:10px 14px; border-radius:12px; font-size:14px; white-space:pre-wrap; overflow-wrap:break-word}
+.ap-msg.user{align-self:flex-end; background:var(--accent-soft); border:1px solid var(--line)}
+.ap-msg.poppy{align-self:flex-start; background:var(--paper); border:1px solid var(--line)}
+.ap-msg.think{align-self:flex-start; color:var(--ink-faint); font-style:italic; padding:2px 14px}
+.ap-card{align-self:stretch; background:var(--surface); border:1px solid var(--accent); border-radius:12px; padding:12px 14px; font-size:13.5px}
+.ap-card h4{margin:0 0 6px; font-family:"Fraunces",serif; font-size:15px}
+.ap-card pre{white-space:pre-wrap; overflow-wrap:break-word; font:inherit; margin:6px 0 10px; color:var(--ink-soft); max-height:180px; overflow-y:auto}
+.ap-inputrow{display:flex; gap:10px; margin-top:12px; align-items:flex-end}
+.ap-inputrow textarea{flex:1; resize:vertical; font:inherit; font-size:14px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--ink)}
+#apMode button[aria-pressed="true"]{background:var(--accent); color:#fff}
+.ap-test-block{background:var(--surface); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); padding:14px 16px; margin-top:14px}
+.ap-test-block h4{margin:0 0 6px; font-family:"Fraunces",serif}
+.ap-test-block pre{white-space:pre-wrap; overflow-wrap:break-word; font:inherit; font-size:14px; margin:0; color:var(--ink)}
+input[type=text], input[type=password], select, textarea{font:inherit; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:8px 12px; width:100%}
+select{width:auto}
+textarea{min-height:110px; resize:vertical}
+label{font-size:12.5px; font-weight:600; color:var(--ink-soft); display:block; margin:14px 0 4px}
+.save-btn{appearance:none; border:0; cursor:pointer; font:inherit; font-weight:600; font-size:13.5px; background:var(--accent); color:#fff; border-radius:8px; padding:8px 16px; margin-top:12px}
+.kb-item{cursor:pointer}
+.kb-item:hover{background:var(--accent-soft)}
+.kb-item.inactive .rule-name b{color:var(--ink-faint); text-decoration:line-through}
+.editor{background:var(--surface); border:1px solid var(--accent); border-radius:12px; padding:16px 18px; margin-top:12px}
+.play{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px}
+.play-card{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:16px 18px}
+.play-card h3{font-family:"Fraunces",serif; font-weight:600; font-size:15.5px; margin:0 0 8px}
+.play-card ol{margin:0; padding-left:18px; font-size:13.5px; color:var(--ink-soft); display:flex; flex-direction:column; gap:5px}
+.play-card ol b{color:var(--ink)}
+.toast{position:fixed; left:50%; bottom:24px; transform:translate(-50%,80px); transition:transform .25s; z-index:10; background:var(--ink); color:var(--paper); font-size:13.5px; font-weight:600; border-radius:99px; padding:9px 20px; box-shadow:var(--shadow)}
+.toast.show{transform:translate(-50%,0)}
+#login{position:fixed; inset:0; background:var(--paper); display:flex; align-items:center; justify-content:center; z-index:20; padding:16px}
+#login[hidden]{display:none}
+#login .card{background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); padding:28px; width:100%; max-width:380px}
+#login h1{font-family:"Fraunces",serif; font-weight:600; font-size:22px; margin:0 0 4px}
+#login p{font-size:13.5px; color:var(--ink-soft); margin:0 0 16px}
+#loginErr{color:var(--crit); font-size:13px; margin-top:8px; min-height:18px}
+button:focus-visible,.tab:focus-visible,.switch:focus-visible,a.small-btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){ .toast,.switch,.switch::after{transition:none} }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="card">
+    <h1>Poppy</h1>
+    <p>The console for Poppy, our support assistant. Sign in with your email and password.</p>
+    <input type="text" id="loginEmail" placeholder="Email" autocomplete="username" inputmode="email" style="margin-bottom:8px">
+    <input type="password" id="pw" placeholder="Password" autocomplete="current-password">
+    <div id="loginErr"></div>
+    <button class="save-btn" id="loginBtn" style="width:100%">Open console</button>
+    <p class="foot-note" style="margin-top:10px">Owner with the master password: leave the email blank.</p>
+  </div>
+</div>
+
+<div class="wrap" id="app" hidden>
+  <header>
+    <div class="wordmark">The Flower Letters <em>· Poppy</em></div>
+    <span class="foot-note" id="whoami" style="margin:0 0 0 auto"></span>
+  </header>
+
+  <div class="status-band">
+    <div class="status-light">
+      <span class="dot" id="dot"></span>
+      <div>
+        <div class="status-word" id="statusWord">…</div>
+        <div class="status-sub" id="statusSub"></div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="stSent">–</b><span>Sent 24h</span></div>
+      <div class="stat"><b class="warn" id="stDrafts">–</b><span>Drafts</span></div>
+      <div class="stat"><b class="crit" id="stEsc">–</b><span>To humans</span></div>
+      <div class="stat"><b class="flagc" id="stFlag">–</b><span>Flagged</span></div>
+    </div>
+    <div class="mode-seg" id="modeSeg">
+      <button data-mode="auto">Autonomous</button>
+      <button data-mode="draft">Draft only</button>
+      <button data-mode="off">Paused</button>
+    </div>
+  </div>
+
+  <nav class="majors" id="majors" role="tablist">
+    <button class="major active" role="tab" aria-selected="true" data-m="cs">Customer Service</button>
+    <button class="major" role="tab" aria-selected="false" data-m="ap">Ask Poppy</button>
+    <button class="major" role="tab" aria-selected="false" data-m="kb">Knowledge</button>
+    <button class="major" role="tab" aria-selected="false" data-m="inv" id="invMajor" hidden>Inventory</button>
+    <button class="major adm" role="tab" aria-selected="false" data-m="admin" id="admMajor" hidden>Admin</button>
+  </nav>
+
+  <div class="subs" data-for="cs">
+    <button class="sub active" data-panel="activity">Activity</button>
+    <button class="sub" data-panel="queue">Needs a human <span class="badge" id="queueCount" hidden>0</span></button>
+    <button class="sub" data-panel="test">Test as a customer</button>
+    <button class="sub" data-panel="rules">Settings</button>
+    <button class="sub" data-panel="messages">Messages</button>
+    <button class="sub" data-panel="playbook">Playbook</button>
+  </div>
+  <div class="subs" data-for="ap" hidden>
+    <button class="sub active" data-panel="askpoppy">Chat</button>
+  </div>
+  <div class="subs" data-for="kb" hidden>
+    <span id="kbTopicTabs" style="display:contents"></span>
+  </div>
+  <div class="subs" data-for="inv" hidden>
+    <button class="sub active" data-panel="inventory">By Story</button>
+    <button class="sub" data-panel="batches">Batches</button>
+    <button class="sub" data-panel="orders">PZ Orders</button>
+  </div>
+  <div class="subs" data-for="admin" hidden>
+    <button class="sub active" data-panel="team">Team</button>
+    <button class="sub" data-panel="audit">Audit</button>
+  </div>
+
+  <section id="activity">
+    <div id="approvalsBox" hidden>
+      <h2>Waiting for your approval</h2>
+      <p class="section-note">Address changes Poppy has staged on unfulfilled orders. One click applies it in Shopify — with an order note and a "Poppy Address Change" tag — or reject it to handle manually.</p>
+      <div class="rule-table" id="approvalsList"></div>
+    </div>
+    <h2>Activity</h2>
+    <p class="section-note">Every ticket the agent touched, newest first. If a reply looks wrong, hit <b>Flag as wrong</b> — flagged replies are collected and used to correct the agent.</p>
+    <div class="actbar">
+      <div class="subs" id="actTabs" style="padding:0">
+        <button class="sub active" data-f="all">All <span class="badge" data-c="all">0</span></button>
+        <button class="sub" data-f="sent">Sent <span class="badge" data-c="sent">0</span></button>
+        <button class="sub" data-f="draft">Draft <span class="badge" data-c="draft">0</span></button>
+        <button class="sub" data-f="team">Sent to team <span class="badge" data-c="team">0</span></button>
+        <button class="sub" data-f="flagged">Flagged <span class="badge" data-c="flagged">0</span></button>
+      </div>
+      <div class="rangesel" id="rangeSel">
+        <button data-r="today" aria-pressed="true">Today</button>
+        <button data-r="yest" aria-pressed="false">Yesterday</button>
+        <button data-r="7" aria-pressed="false">Last 7 days</button>
+        <button data-r="all" aria-pressed="false">All</button>
+        <button data-r="custom" aria-pressed="false">Custom</button>
+      </div>
+      <div class="customrange" id="customRange">
+        <input type="date" id="cFrom"><span class="foot-note" style="margin:0">to</span><input type="date" id="cTo">
+      </div>
+    </div>
+    <div class="feed" id="feed"></div>
+  </section>
+
+  <section id="askpoppy" hidden>
+    <p class="section-note">Talk to Poppy directly. Ask how she works, look up a customer, pull an order report or a mailing batch list, check inventory, or teach her something new — she'll draft it and you confirm.</p>
+    <div id="apChat">
+      <div class="ap-log" id="apLog"><div class="ap-hello">Hi! I'm Poppy. Ask me anything — how I handle tickets, what I know, a customer's orders, or ask me for an order report or a mailing batch list.</div></div>
+      <div class="ap-inputrow">
+        <textarea id="apInput" rows="2" placeholder="Ask Poppy…"></textarea>
+        <button class="save-btn" id="apSend">Send</button>
+      </div>
+    </div>
+      </section>
+
+  <section id="test" hidden>
+    <p class="section-note">Paste a pretend customer email and see exactly what Poppy would do with it — how she triages it, and the reply or escalation she'd produce. Read-only: nothing is sent to anyone, and no ticket is touched.</p>
+    <div id="apTest">
+      <div class="editor" style="display:block">
+        <label for="apTSubject">Subject</label>
+        <input type="text" id="apTSubject" placeholder="e.g. Where is my order?">
+        <label for="apTBody">The customer's email</label>
+        <textarea id="apTBody" rows="6" placeholder="Write it exactly like a customer would…"></textarea>
+        <label for="apTEmail">From email (use a real customer's email to test order lookups)</label>
+        <input type="text" id="apTEmail" placeholder="test@example.com">
+        <button class="save-btn" id="apTRun">Run the test</button>
+        <span class="foot-note" style="display:inline-block; margin-left:10px">Read-only — nothing is sent to anyone.</span>
+      </div>
+      <div id="apTOut"></div>
+    </div>
+    </section>
+
+  <section id="queue" hidden>
+    <p class="section-note">Everything Poppy tagged and handed to a person, newest first. She triages each ticket as it arrives, writes the type onto it as a tag in Gorgias, and leaves what she found as an internal note — so you start at the decision, not the research.</p>
+    <div class="subs" id="queueFilters" style="padding-left:0"></div>
+    <div id="queueList"><div class="empty">Loading…</div></div>
+  </section>
+
+  <section id="team" hidden>
+    <p class="section-note">Personal logins for the console. Each person signs in with their <b>email</b> and a password. Creating a login generates a temporary password (shown <b>once</b> — send it to them privately; they can change it after signing in via the "change password" link up top). Roles: <b>Admin</b> can do everything including the live switches and this page; <b>Team</b> does the day-to-day work — Ask Poppy, flagging, confirming knowledge, approving address changes; <b>Viewer</b> can look at everything but change nothing. Deactivating a login shuts it off immediately. Every action is logged with the person's name. <b>Inventory only</b> and <b>Ask Poppy only</b> logins see nothing but that one section (for Inventory only, their Inventory setting decides view vs edit). For everyone else, <b>Inventory</b> is separate from the role and off by default — grant <b>view</b> (see the tab) or <b>edit</b> (enter counts) per person; admins always have it.</p>
+    <div class="editor" style="display:block; margin-bottom:16px">
+      <label for="uName">Add a person</label>
+      <div class="batch-bar" style="margin-bottom:0">
+        <input type="text" id="uName" placeholder="Name, e.g. Sarah" style="max-width:170px">
+        <input type="text" id="uEmail" placeholder="Email (their username)" inputmode="email" style="max-width:250px">
+        <select id="uRole"><option value="team" selected>Team</option><option value="viewer">Viewer</option><option value="admin">Admin</option><option value="inventory">Inventory only</option><option value="askpoppy">Ask Poppy only</option></select>
+        <select id="uInv" title="Inventory access"><option value="none" selected>Inventory: none</option><option value="view">Inventory: view</option><option value="edit">Inventory: edit</option></select>
+        <button class="save-btn" id="uCreate" style="margin-top:0">Create login</button>
+      </div>
+      <div id="uNewCode" hidden class="batch-warn" style="margin-top:12px"></div>
+    </div>
+    <div class="rule-table" id="uList"><div class="empty">Loading…</div></div>
+  </section>
+
+  <section id="audit" hidden>
+    <p class="section-note">The complete, permanent record of everything Poppy and the team have done — every triage decision, tool call, reply, draft, escalation, setting change, knowledge save, flag, address change, and login change. Read-only: nothing here can be edited or deleted. Filter and hit Search; leave a filter empty to match everything. You can also just ask Poppy ("what did Sarah do yesterday?") — she has this same search.</p>
+    <div class="batch-bar">
+      <input type="date" id="aFrom" title="From date">
+      <input type="date" id="aTo" title="To date">
+      <input type="text" id="aActor" placeholder="Person / actor (e.g. sarah, agent)" style="max-width:210px">
+      <input type="text" id="aAction" placeholder="Action (e.g. reply_sent, address)" style="max-width:200px">
+      <input type="text" id="aTicket" placeholder="Ticket #" inputmode="numeric" style="max-width:100px">
+      <select id="aLimit"><option value="100" selected>100</option><option value="250">250</option><option value="500">500</option></select>
+      <button class="save-btn" id="aRun" style="margin-top:0">Search</button>
+      <button class="small-btn" id="aCsv">Download CSV</button>
+    </div>
+    <div id="aOut"><div class="empty">Pick filters (or none) and hit Search.</div></div>
+  </section>
+
+  <section id="batches" hidden>
+    <p class="section-note">Every <b>un-archived</b> mailing batch in Drive, counted straight from the batch files: how many recipients are ACTIVE vs CANCELED in each. A batch drops off this report when its file is moved into a story's <b>Completed Batches</b> folder. Refreshes itself overnight; hit Refresh for up-to-the-minute counts (it re-reads every file, about a minute).</p>
+    <div class="batch-bar">
+      <button class="save-btn" id="bRefresh">Refresh counts</button>
+      <button class="small-btn" id="bCsv">Download CSV</button>
+      <span class="foot-note" id="bStamp"></span>
+    </div>
+    <div id="bOut"><div class="empty">Loading…</div></div>
+  </section>
+
+  <section id="inventory" hidden>
+    <p class="section-note" style="max-width:100ch">Twelve months of piece-by-piece runway, computed from the live batch counts — each batch advances one letter per mailing (two per month, <b>Mailing 1</b> and <b>Mailing 2</b>). Two pools: <b>white</b> cells mail from your shelf, <b>amber</b> means you're mailing out of PZ's stock (a delivery has to happen by then), <b>red</b> means PZ is out too and only a new print run covers it. Click a number in <b>Our shelf</b> or <b>PZ capacity</b> to correct it; use <b>Delivery</b> when a PZ shipment arrives (adds to your shelf, deducts from PZ).</p>
+    <div class="batch-bar">
+      <button class="save-btn" id="iReload">Reload</button>
+      <button class="small-btn" id="iRefreshBatches">Refresh batch counts</button>
+      <button class="small-btn" id="iPzPull">Pull counts from sheet</button>
+      <select id="iHorizon" hidden><option value="12" selected>12</option></select>
+      <button class="small-btn" id="iOrder" hidden>Build PZ order</button>
+      <button class="small-btn" id="iOrderCsv" hidden>Download order CSV</button>
+      <span class="foot-note" id="iStamp"></span>
+    </div>
+    <div id="iBand"></div>
+    <div class="stabs" id="iStoryTabs"></div>
+    <div id="iOut"><div class="empty">Loading…</div></div>
+  </section>
+
+  <section id="orders" hidden>
+    <p class="section-note">What to order from PZ: everything each piece needs over the horizon you pick, plus the per-story resend allowance, minus what's on your shelf and in PZ's stock — rounded to the way each print type runs on a sheet.</p>
+    <div class="batch-bar">
+      <select id="oHorizon"><option value="6">Next 6 mailings (a quarter)</option><option value="12" selected>Next 12 (half year)</option><option value="24">Next 24 (a year)</option></select>
+      <button class="save-btn" id="oBuild" style="margin-top:0">Build order</button>
+      <button class="small-btn" id="oCsv">Download CSV</button>
+    </div>
+    <div id="oOut"><div class="empty">Pick a horizon and hit <b>Build order</b>.</div></div>
+  </section>
+
+  <section id="rules" hidden>
+    <p class="section-note">Everything that shapes how Poppy behaves. <b>Autonomous</b>: she replies on her own. <b>Draft</b>: she writes the reply, a person approves. <b>Human only</b>: she leaves it alone. Money is locked to your team and has no switch.</p>
+    <h2>Conversation limits</h2>
+    <div class="rule-table"><div class="rule-row">
+      <div class="rule-name"><b>Replies per ticket before a human takes over</b><span>A customer can ask follow-ups and Poppy answers each one. After this many replies on the same ticket she stops and hands it to your team, so nobody gets stuck going in circles with an automated agent.</span></div>
+      <select id="maxReplies" style="max-width:90px"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
+    </div><div class="rule-row">
+      <div class="rule-name"><b>Most replies she may send in a day</b><span>A safety ceiling across all tickets — if it's hit, she falls back to drafting instead of sending.</span></div>
+      <input type="text" id="dailyCap" inputmode="numeric" style="max-width:90px">
+    </div></div>
+    <h2>Ticket types</h2>
+    <div class="rule-table" id="catTable"></div>
+    <h2>Actions</h2>
+    <div class="rule-table"><div class="rule-row">
+      <div class="rule-name"><b>Address changes (unfulfilled orders only)</b><span>Off: team-only · Propose: Poppy stages, you approve · Auto: Poppy applies it herself</span></div>
+      <div class="seg" id="acmSeg">
+        <button data-acm="off">Off</button>
+        <button data-acm="propose">Propose</button>
+        <button data-acm="auto">Auto</button>
+      </div>
+    </div></div>
+    <p class="foot-note">Whatever the mode: only the sender's own order, only if unfulfilled, and every change leaves an order note and a "Poppy Address Change (date)" tag in Shopify. Shipped orders always go to the team.</p>
+    <div class="rule-table" style="margin-top:12px"><div class="rule-row">
+      <div class="rule-name"><b>Value-add suggestions</b><span>After fully solving a request, Poppy may add one warm suggestion from the "current offers" knowledge article — never to upset customers or problem threads</span></div>
+      <button class="switch" role="switch" aria-checked="false" id="offersSw" aria-label="Value-add suggestions"></button>
+    </div></div>
+    <p class="foot-note">She can only mention offers written in the Knowledge tab's "Current offers" article — she never invents a discount or a code.</p>
+    <h2>Channels</h2>
+    <div class="rule-table" id="chanTable"></div>
+    <p class="foot-note">The agent can never issue refunds, change orders, or touch payment. That's built into what it's able to do, not just these settings — these switches only decide which questions it answers with words.</p>
+  </section>
+
+  <section id="knowledge" hidden>
+    <p class="section-note">Everything Poppy is allowed to know, organized by topic. Pick a topic above to see exactly what she'll use to answer those questions. If something isn't covered here, she hands the ticket to your team instead of guessing.</p>
+    <div class="kbhead">
+      <h2 id="kbTopicName" style="margin:0">Topic</h2>
+      <span class="foot-note" id="kbTopicMeta" style="margin:0"></span>
+      <span style="margin-left:auto"></span>
+      <button class="save-btn" id="kbNew" style="margin-top:0" hidden>+ Add article to this topic</button>
+      <button class="small-btn" id="kbTopicDel" hidden>Remove topic</button>
+    </div>
+    <div class="inlineform" id="kbEditor" hidden>
+      <label for="kbTitle">Title</label>
+      <input type="text" id="kbTitle" placeholder="e.g. Resend tracking upgrade">
+      <label for="kbContent">Article — write it the way you'd tell a customer; this is the text Poppy draws on</label>
+      <textarea id="kbContent"></textarea>
+      <label for="kbTopicPick">Topic</label>
+      <select id="kbTopicPick"></select>
+      <div class="row">
+        <button class="save-btn" id="kbSave" style="margin-top:0">Save article</button>
+        <button class="small-btn" id="kbCancel">Cancel</button>
+        <span class="foot-note" id="kbEditNote" style="margin:0"></span>
+      </div>
+    </div>
+    <div class="inlineform" id="kbTopicForm" hidden>
+      <label for="kbTopicNew">Topic name</label>
+      <input type="text" id="kbTopicNew" placeholder="e.g. Damaged Items">
+      <div class="row"><button class="save-btn" id="kbTopicSave" style="margin-top:0">Create topic</button><button class="small-btn" id="kbTopicCancel">Cancel</button></div>
+    </div>
+    <div id="kbList"></div>
+    <p class="foot-note" id="kbAdminNote" hidden>Add, edit and delete are admin-only — Team and Viewer logins see these articles read-only. Every change is logged in the Audit tab.</p>
+  </section>
+
+  <section id="messages" hidden>
+    <p class="section-note">The two standard messages customers see, and the response-time promise inside them. Changes apply immediately, no technical steps.</p>
+    <h2>Acknowledgment (when a human will answer)</h2>
+    <div class="rule-table"><div class="rule-row" style="display:block">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:6px">
+        <button class="switch" role="switch" aria-checked="true" id="rtAutoSw" aria-label="Automatic response time"></button>
+        <span style="font-size:13px; color:var(--ink-soft)">Measure automatically from real Gorgias response times (updates a few times a day)</span>
+      </div>
+      <label for="respTime">Current response time (fills the {response_time} blank below)</label>
+      <input type="text" id="respTime">
+      <label for="ackTemplate">Acknowledgment message</label>
+      <textarea id="ackTemplate" rows="5"></textarea>
+      <button class="save-btn" id="saveMsgs">Save messages</button>
+    </div></div>
+    <p class="foot-note" id="footerNote"></p>
+  </section>
+
+  <section id="playbook" hidden>
+    <p class="section-note">The short version of the team guide. No technical steps, ever.</p>
+    <div class="play">
+      <div class="play-card"><h3>Poppy said something wrong</h3><ol><li>Find the reply in <b>Activity</b> and hit <b>Flag as wrong</b>.</li><li>Reply to the customer yourself in Gorgias with the correct answer.</li><li>Flagged replies get reviewed and the agent's knowledge is corrected.</li></ol></div>
+      <div class="play-card"><h3>Something feels off — stop it</h3><ol><li>Set the switch at the top to <b>Paused</b>. That's it.</li><li>Emails simply wait for the team in Gorgias, like before.</li><li>No permission needed. When in doubt, pause.</li></ol></div>
+      <div class="play-card"><h3>A customer is upset they got an AI reply</h3><ol><li>Take over the ticket in Gorgias — the agent backs off any ticket a person is assigned to.</li><li>Answer personally, warmly, as always.</li><li>Flag the original reply so we can review it.</li></ol></div>
+      <div class="play-card"><h3>Teach it something new</h3><ol><li>Open the <b>Knowledge</b> tab.</li><li>Edit an article, or add one, written the way you'd tell a customer.</li><li>Save. The very next ticket uses it.</li></ol></div>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+  "use strict";
+  var $=function(s,el){return (el||document).querySelector(s)}, $$=function(s,el){return [].slice.call((el||document).querySelectorAll(s))};
+  var KEY=null, USER=null, DATA=null, toastTimer;
+  function authHeaders(extra){
+    var h=extra||{}; h["x-console-key"]=KEY; if(USER) h["x-console-user"]=USER; return h;
+  }
+
+  function toast(m){var t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove("show")},2600)}
+  function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+
+  function api(method, body){
+    try{
+      return fetch("/api/console-data",{method:method,headers:authHeaders({"content-type":"application/json"}),body:body?JSON.stringify(body):undefined})
+        .then(function(r){ if(r.status===401) throw new Error("unauthorized"); if(!r.ok) return r.json().then(function(j){throw new Error(j.error||"error")}); return r.json(); });
+    }catch(e){
+      // e.g. a password with special characters that can't travel in a header
+      return Promise.reject(new Error("that password contains characters that can't be used - use plain letters and numbers"));
+    }
+  }
+  function setSetting(key,value,msg){
+    return api("POST",{action:"set_setting",key:key,value:value}).then(function(){ DATA.settings[key]=value; if(msg)toast(msg); }).catch(function(e){ toast("Could not save: "+e.message); render(); });
+  }
+
+  // ---- login (email = username; blank email + master password = owner) ----
+  function tryLogin(email, pw){
+    USER=(email||"").trim().toLowerCase()||null; KEY=pw;
+    return api("GET").then(function(d){
+      DATA=d;
+      try{ sessionStorage.setItem("tfl_console_key",pw); if(USER) sessionStorage.setItem("tfl_console_user",USER); else sessionStorage.removeItem("tfl_console_user"); }catch(e){}
+      $("#login").hidden=true; $("#app").hidden=false; render();
+    });
+  }
+  $("#loginBtn").addEventListener("click",function(){
+    tryLogin($("#loginEmail").value, $("#pw").value).catch(function(e){ $("#loginErr").textContent = e.message==="unauthorized" ? "That email/password combination isn’t right (or the login was deactivated)." : "Couldn't reach the console: "+e.message; });
+  });
+  $("#pw").addEventListener("keydown",function(e){ if(e.key==="Enter") $("#loginBtn").click(); });
+  $("#loginEmail").addEventListener("keydown",function(e){ if(e.key==="Enter") $("#pw").focus(); });
+  try{ var savedK=sessionStorage.getItem("tfl_console_key"), savedU=sessionStorage.getItem("tfl_console_user"); if(savedK) tryLogin(savedU||"",savedK).catch(function(){ try{sessionStorage.removeItem("tfl_console_key");sessionStorage.removeItem("tfl_console_user")}catch(e){} }); }catch(e){}
+
+  // ---- two-level navigation ----
+  // Major tabs pick a section of the console; the sub-tab row under them picks
+  // the page. Lazy loaders fire the first time a page is opened.
+  var LAZY = { batches:function(){ if(!bLoaded){bLoaded=true;bLoad();} },
+               inventory:function(){ if(!iLoaded){iLoaded=true;iLoad();} },
+               team:function(){ if(!uLoaded){uLoaded=true;uLoad();} } };
+  function showPanel(id){
+    $$("section").forEach(function(sec){ sec.hidden = sec.id!==id; });
+    if(LAZY[id]) LAZY[id]();
+    if(id==="queue") qRender();
+    if(id==="knowledge") kbRender();
+  }
+  function showMajor(m){
+    $$(".major").forEach(function(b){ var on=b.dataset.m===m; b.classList.toggle("active",on); b.setAttribute("aria-selected",on?"true":"false"); });
+    $$(".subs[data-for]").forEach(function(row){ row.hidden = row.dataset.for!==m; });
+    var row=document.querySelector('.subs[data-for="'+m+'"]');
+    var active=row && (row.querySelector(".sub.active") || row.querySelector(".sub"));
+    if(active){ row.querySelectorAll(".sub").forEach(function(x){x.classList.toggle("active",x===active)}); 
+      if(m==="kb") kbPickTopic(active.dataset.topic); else showPanel(active.dataset.panel); }
+  }
+  $$(".major").forEach(function(b){ b.addEventListener("click",function(){ showMajor(b.dataset.m); window.scrollTo(0,0); }); });
+  document.addEventListener("click",function(ev){
+    var b=ev.target.closest(".subs[data-for] .sub"); if(!b) return;
+    b.closest(".subs").querySelectorAll(".sub").forEach(function(x){x.classList.toggle("active",x===b)});
+    if(b.dataset.topic!==undefined) kbPickTopic(b.dataset.topic); else if(b.dataset.panel) showPanel(b.dataset.panel);
+  });
+
+  // ---- render ----
+  var CATS=[
+    {key:"order_status",name:"Order status & tracking",desc:"“Where is my letter?” — looks up their order in Shopify"},
+    {key:"shipping_info",name:"Shipping questions",desc:"Mailing dates, delivery windows, international"},
+    {key:"product_question",name:"Product questions",desc:"Stories, tins, age fit, The Garden"},
+    {key:"general_faq",name:"General FAQ",desc:"Gifting, how it works, ordering"},
+    {key:"collection_schedule",name:"Collection schedule",desc:"Which letter is next, mailing cadence"},
+    {key:"feedback_comment",name:"Comments & feedback",desc:"Praise, suggestions, opinions — one warm reply, no follow-up"}
+  ];
+  var LOCKED=[
+    ["Refunds & cancellations","Any request to refund, cancel, or exchange"],
+    ["Payment issues","Failed charges, billing questions"],
+    ["Address changes","Moves, wrong address, gift redirects"],
+    ["Damaged or missing letters","Reissues and replacements"],
+    ["Upset customers, legal, press","Serious complaints and anything sensitive"]
+  ];
+  var CHANNELS=[["email","Email","support@theflowerletters.com tickets in Gorgias"],["chat","Website chat","Needs a shorter, chattier reply style first"],["facebook","Facebook DMs","Social messages that land in Gorgias"],["instagram","Instagram DMs","Social messages that land in Gorgias"]];
+  var lockSvg='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 1 1 6 0v3H9z"/></svg>';
+  function chanLabel(c){ c=String(c||""); if(c==="email")return "Email"; if(c==="contact_form")return "Contact form"; if(c.indexOf("facebook")===0)return "Facebook"; if(c.indexOf("instagram")===0)return "Instagram"; if(c==="chat")return "Chat"; return c?c.replace(/[-_]/g," "):""; }
+
+  function render(){
+    // Single-purpose logins: one section is the whole console.
+    if(DATA.me && (DATA.me.role==="inventory" || DATA.me.role==="askpoppy")){
+      var only = DATA.me.role==="inventory" ? "inv" : "ap";
+      var who2=$("#whoami"); who2.innerHTML="";
+      who2.appendChild(document.createTextNode("Signed in as "+(DATA.me.email||DATA.me.name)+" · "+(only==="inv"?"inventory":"Ask Poppy")+" "));
+      var cpw2=document.createElement("a"); cpw2.href="#"; cpw2.textContent="change password";
+      cpw2.addEventListener("click",function(ev){
+        ev.preventDefault();
+        var cur=prompt("Current password:"); if(cur==null) return;
+        var nxt=prompt("New password (at least 8 characters):"); if(nxt==null) return;
+        api("POST",{action:"change_password",current:cur,next:nxt}).then(function(){
+          KEY=nxt; try{sessionStorage.setItem("tfl_console_key",nxt)}catch(e){}
+          toast("Password changed");
+        }).catch(function(e){ toast(e.message); });
+      });
+      who2.appendChild(cpw2);
+      var sb=document.querySelector(".status-band"); if(sb) sb.style.display="none";
+      $$(".major").forEach(function(b){ b.hidden = b.dataset.m!==only; });
+      showMajor(only);
+      if(only==="inv") $("#iRefreshBatches").style.display="none";
+      return;
+    }
+    var S=DATA.settings, mode=S.agent_mode||"draft";
+    // who am I + role-aware chrome
+    if(DATA.me){
+      var who=$("#whoami"); who.innerHTML="";
+      who.appendChild(document.createTextNode("Signed in as "+(DATA.me.email||DATA.me.name)+(DATA.me.role!=="admin"?" · "+DATA.me.role:"")+" "));
+      if(DATA.me.email){
+        var cpw=document.createElement("a"); cpw.href="#"; cpw.textContent="change password";
+        cpw.addEventListener("click",function(ev){
+          ev.preventDefault();
+          var cur=prompt("Current password:"); if(cur==null) return;
+          var nxt=prompt("New password (at least 8 characters):"); if(nxt==null) return;
+          api("POST",{action:"change_password",current:cur,next:nxt}).then(function(){
+            KEY=nxt; try{sessionStorage.setItem("tfl_console_key",nxt)}catch(e){}
+            toast("Password changed");
+          }).catch(function(e){ toast(e.message); });
+        });
+        who.appendChild(cpw);
+      }
+      $$(".major").forEach(function(b){ b.hidden=false; });
+      $("#admMajor").hidden = DATA.me.role!=="admin";
+      $("#invMajor").hidden = !(DATA.me.role==="admin" || DATA.me.inv==="view" || DATA.me.inv==="edit");
+      $("#modeSeg").style.display = DATA.me.role==="admin" ? "" : "none";
+    }
+    // status band
+    var dot=$("#dot"); dot.className="dot"+(mode==="draft"?" draft":mode==="off"?" off":"");
+    $("#statusWord").textContent = mode==="auto"?"Running":mode==="draft"?"Draft mode":"Paused";
+    $("#statusSub").textContent = mode==="auto"?"Answering on its own where allowed; everything else goes to the team."
+      : mode==="draft"?"Writing proposed replies for your team to review. Nothing sends to customers on its own."
+      : "Not doing anything. Emails wait in Gorgias for your team.";
+    $$("#modeSeg button").forEach(function(b){b.setAttribute("aria-pressed", b.dataset.mode===mode?"true":"false")});
+    $("#maxReplies").value = S.max_auto_replies_per_ticket || "3";
+    $("#dailyCap").value = S.daily_send_cap || "200";
+    $("#stSent").textContent=DATA.stats.sent; $("#stDrafts").textContent=DATA.stats.drafts; $("#stEsc").textContent=DATA.stats.escalated; $("#stFlag").textContent=DATA.stats.flagged;
+
+    // activity
+    renderFeed();
+
+    // categories
+    var ct=$("#catTable"); ct.innerHTML="";
+    CATS.forEach(function(c){
+      var v=S["cat_mode_"+c.key]||"auto";
+      var row=document.createElement("div"); row.className="rule-row";
+      row.innerHTML='<div class="rule-name"><b>'+c.name+'</b><span>'+c.desc+'</span></div>'
+        +'<div class="seg">'+["auto","draft","human"].map(function(m){
+          return '<button data-v="'+m+'" data-cat="'+c.key+'" aria-pressed="'+(v===m?"true":"false")+'">'+(m==="auto"?"Autonomous":m==="draft"?"Draft":"Human only")+'</button>';
+        }).join("")+'</div>';
+      ct.appendChild(row);
+    });
+    LOCKED.forEach(function(l){
+      var row=document.createElement("div"); row.className="rule-row";
+      row.innerHTML='<div class="rule-name"><b>'+l[0]+'</b><span>'+l[1]+'</span></div><div class="locked">'+lockSvg+'Always your team</div>';
+      ct.appendChild(row);
+    });
+    $$("[data-cat]",ct).forEach(function(b){ b.addEventListener("click",function(){
+      setSetting("cat_mode_"+b.dataset.cat, b.dataset.v, "Saved").then(render);
+    })});
+
+    // approvals queue
+    var pend=DATA.pending_actions||[];
+    $("#approvalsBox").hidden = pend.length===0;
+    var al=$("#approvalsList"); al.innerHTML="";
+    pend.forEach(function(p){
+      var o=p.old_address||{}, n=p.new_address||{};
+      var oldLine=[o.address1,o.address2,o.city,o.provinceCode,o.zip].filter(Boolean).join(", ");
+      var newLine=[n.address1,n.address2,n.city,n.province_code,n.zip].filter(Boolean).join(", ");
+      var row=document.createElement("div"); row.className="rule-row";
+      row.innerHTML='<div class="rule-name"><b>'+esc(p.order_name)+' · '+esc(p.customer_email||"")+'</b>'
+        +'<span>'+esc(oldLine||"(no old address)")+' → <b>'+esc(newLine)+'</b></span></div>'
+        +'<button class="save-btn" style="margin-top:0" data-appr="'+p.id+'">Approve &amp; apply</button>'
+        +'<button class="small-btn" data-rej="'+p.id+'">Reject</button>';
+      al.appendChild(row);
+    });
+    $$("[data-appr]",al).forEach(function(b){ b.addEventListener("click",function(){
+      b.disabled=true;
+      api("POST",{action:"resolve_action",id:parseInt(b.dataset.appr,10),approve:true}).then(function(r){ toast(r.ok?"Applied in Shopify — note and tag added":("Could not apply: "+(r.error||""))); refresh(); }).catch(function(e){toast("Error: "+e.message); b.disabled=false;});
+    })});
+    $$("[data-rej]",al).forEach(function(b){ b.addEventListener("click",function(){
+      api("POST",{action:"resolve_action",id:parseInt(b.dataset.rej,10),approve:false}).then(function(){ toast("Rejected — handle in Gorgias"); refresh(); }).catch(function(e){toast("Error: "+e.message)});
+    })});
+
+    // address change mode
+    var acm=S.address_change_mode||"off";
+    $$("#acmSeg button").forEach(function(b){b.setAttribute("aria-pressed", b.dataset.acm===acm?"true":"false")});
+
+    // offers switch
+    $("#offersSw").setAttribute("aria-checked", (S.offers_enabled==="true")?"true":"false");
+
+    // channels
+    var enabled=(S.channels_enabled||"email").split(",");
+    var cht=$("#chanTable"); cht.innerHTML="";
+    CHANNELS.forEach(function(ch){
+      var on=enabled.indexOf(ch[0])>=0;
+      var row=document.createElement("div"); row.className="rule-row";
+      row.innerHTML='<div class="rule-name"><b>'+ch[1]+'</b><span>'+ch[2]+'</span></div>'
+        +'<button class="switch" role="switch" aria-checked="'+on+'" data-chan="'+ch[0]+'" aria-label="'+ch[1]+'"></button>';
+      cht.appendChild(row);
+    });
+    $$("[data-chan]",cht).forEach(function(sw){ sw.addEventListener("click",function(){
+      var cur=(DATA.settings.channels_enabled||"email").split(",").filter(Boolean);
+      var c=sw.dataset.chan, i=cur.indexOf(c);
+      if(i>=0) cur.splice(i,1); else cur.push(c);
+      if(!cur.length){ toast("At least one channel must stay on"); return; }
+      setSetting("channels_enabled",cur.join(","),"Channels updated").then(render);
+    })});
+
+    // knowledge
+    kbBuildTabs();
+
+    // messages
+    var rtAuto = (S.response_time_auto||"true")==="true";
+    $("#rtAutoSw").setAttribute("aria-checked", rtAuto?"true":"false");
+    $("#respTime").disabled = rtAuto;
+    $("#respTime").value=S.human_response_time||"";
+    $("#ackTemplate").value=S.ack_template||"";
+    $("#footerNote").textContent="Auto-sent replies also carry the AI disclosure footer, which is set at deploy level. Ask Mike (or Claude) to change its wording.";
+  }
+
+  // response-time auto switch
+  $("#rtAutoSw").addEventListener("click",function(){
+    var on = $("#rtAutoSw").getAttribute("aria-checked")==="true";
+    setSetting("response_time_auto", on?"false":"true", on?"Response time is now set by hand":"Response time now measured from live Gorgias data").then(render);
+  });
+
+  // offers switch
+  $("#offersSw").addEventListener("click",function(){
+    var on = $("#offersSw").getAttribute("aria-checked")==="true";
+    setSetting("offers_enabled", on?"false":"true", on?"Value-add suggestions off":"Value-add suggestions on — edit the Current offers article to control what she mentions").then(render);
+  });
+
+  // address-change mode segment
+  $$("#acmSeg button").forEach(function(b){ b.addEventListener("click",function(){
+    var m=b.dataset.acm;
+    var msg = m==="off"?"Address changes: team-only":m==="propose"?"Address changes: Poppy stages, you approve":"Address changes: Poppy applies on unfulfilled orders";
+    setSetting("address_change_mode",m,msg).then(render);
+  })});
+
+  // mode segment
+  $$("#modeSeg button").forEach(function(b){ b.addEventListener("click",function(){
+    var m=b.dataset.mode;
+    var msg = m==="off"?"Agent paused — nothing will send":m==="draft"?"Draft mode — proposals only, nothing sends":"Autonomous — the agent answers allowed questions on its own";
+    setSetting("agent_mode",m,msg).then(render);
+  })});
+
+  // ---- knowledge: topics + articles (add/edit/delete are admin-only) ----
+  var kbTopic=null, kbEditing=null;
+  function kbCanEdit(){ return DATA && DATA.me && DATA.me.role==="admin"; }
+  function kbTopics(){
+    var list=(DATA && DATA.kb_topics ? DATA.kb_topics.slice() : []);
+    (DATA && DATA.kb ? DATA.kb : []).forEach(function(a){ var t=a.topic||"Unsorted"; if(list.indexOf(t)<0) list.push(t); });
+    if(list.indexOf("Unsorted")<0) list.push("Unsorted");
+    return list;
+  }
+  function kbBuildTabs(){
+    var row=$("#kbTopicTabs"); if(!row) return;
+    var topics=kbTopics();
+    if(!kbTopic || topics.indexOf(kbTopic)<0) kbTopic=topics[0];
+    row.innerHTML="";
+    topics.forEach(function(t){
+      var n=(DATA.kb||[]).filter(function(a){ return (a.topic||"Unsorted")===t; }).length;
+      var b=document.createElement("button");
+      b.className="sub"+(t===kbTopic?" active":"");
+      b.dataset.topic=t;
+      b.innerHTML=esc(t)+(n?' <span class="badge">'+n+'</span>':"");
+      row.appendChild(b);
+    });
+    if(kbCanEdit()){
+      var add=document.createElement("button");
+      add.className="sub"; add.style.borderStyle="dashed"; add.style.color="var(--accent)";
+      add.textContent="+ Add topic"; add.id="kbAddTopic";
+      add.addEventListener("click",function(ev){ ev.stopPropagation(); $("#kbTopicForm").hidden=!$("#kbTopicForm").hidden; if(!$("#kbTopicForm").hidden) $("#kbTopicNew").focus(); });
+      row.appendChild(add);
+    }
+  }
+  function kbPickTopic(t){ kbTopic=t; $$("#kbTopicTabs .sub").forEach(function(x){x.classList.toggle("active",x.dataset.topic===t)}); showPanel("knowledge"); }
+  function kbRender(){
+    if(!DATA || !DATA.kb) return;
+    kbBuildTabs();
+    var can=kbCanEdit();
+    var arts=DATA.kb.filter(function(a){ return (a.topic||"Unsorted")===kbTopic; });
+    $("#kbTopicName").textContent=kbTopic||"Topic";
+    $("#kbTopicMeta").textContent=arts.length+(arts.length===1?" article":" articles")+" — exactly what Poppy knows and will use on these questions";
+    $("#kbNew").hidden=!can;
+    $("#kbTopicDel").hidden=!can || kbTopic==="Unsorted";
+    $("#kbAdminNote").hidden=can;
+    var box=$("#kbList"); box.innerHTML="";
+    if(!arts.length){ box.innerHTML='<div class="empty">Nothing filed under this topic yet.'+(can?' Use <b>+ Add article to this topic</b> above.':'')+'</div>'; return; }
+    arts.forEach(function(a){
+      var el=document.createElement("div"); el.className="kbart";
+      el.innerHTML='<div class="t">'+esc(a.title)+' '+(a.active?'<span class="chip sent">Active — Poppy uses this</span>':'<span class="chip draft">Retired — not used</span>')+'</div>'
+        +'<div class="body">'+esc((a.content||"").slice(0,400))+((a.content||"").length>400?"…":"")+'</div>'
+        +(can?'<div class="acts"><button class="editlink" data-edit="'+esc(a.slug)+'">Edit</button><button class="dellink" data-del="'+esc(a.slug)+'">Delete</button></div>':"");
+      box.appendChild(el);
+    });
+    $$("[data-edit]",box).forEach(function(b){ b.addEventListener("click",function(){
+      kbOpen(DATA.kb.filter(function(a){return a.slug===b.dataset.edit})[0]);
+    })});
+    $$("[data-del]",box).forEach(function(b){ b.addEventListener("click",function(){
+      var a=DATA.kb.filter(function(x){return x.slug===b.dataset.del})[0]; if(!a) return;
+      if(!confirm('Delete "'+a.title+'"?\n\nPoppy stops using it immediately. This is logged in the Audit tab and cannot be undone.')) return;
+      api("POST",{action:"kb_delete",slug:a.slug}).then(function(){ toast("Deleted"); refresh(); }).catch(function(e){ toast(e.message); });
+    })});
+  }
+  function kbOpen(a){
+    kbEditing=a||null;
+    $("#kbEditor").hidden=false;
+    $("#kbTitle").value=a?a.title:"";
+    $("#kbContent").value=a?a.content:"";
+    var pick=$("#kbTopicPick"); pick.innerHTML="";
+    kbTopics().forEach(function(t){ var o=document.createElement("option"); o.value=t; o.textContent=t; if(t===(a?(a.topic||"Unsorted"):kbTopic)) o.selected=true; pick.appendChild(o); });
+    $("#kbEditNote").textContent = a ? ("Editing “"+a.title+"”") : "New article";
+    $("#kbEditor").scrollIntoView({behavior:"smooth",block:"nearest"});
+  }
+  $("#kbNew").addEventListener("click",function(){ kbOpen(null); });
+  $("#kbCancel").addEventListener("click",function(){ $("#kbEditor").hidden=true; kbEditing=null; });
+  $("#kbSave").addEventListener("click",function(){
+    var title=$("#kbTitle").value.trim(), content=$("#kbContent").value.trim(), topic=$("#kbTopicPick").value;
+    if(!title||!content){ toast("Both a title and the article text are needed"); return; }
+    var slug=kbEditing?kbEditing.slug:title.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"").slice(0,60);
+    api("POST",{action:"kb_save",slug:slug,title:title,content:content,topic:topic,active:true}).then(function(){
+      toast("Saved — the next ticket uses it"); $("#kbEditor").hidden=true; kbEditing=null; kbTopic=topic; refresh();
+    }).catch(function(e){ toast("Could not save: "+e.message); });
+  });
+  $("#kbTopicSave").addEventListener("click",function(){
+    var name=$("#kbTopicNew").value.trim(); if(!name){ toast("Give the topic a name"); return; }
+    api("POST",{action:"kb_topic_create",name:name}).then(function(){
+      toast("Topic created"); $("#kbTopicNew").value=""; $("#kbTopicForm").hidden=true; kbTopic=name; refresh();
+    }).catch(function(e){ toast(e.message); });
+  });
+  $("#kbTopicCancel").addEventListener("click",function(){ $("#kbTopicForm").hidden=true; });
+  $("#kbTopicDel").addEventListener("click",function(){
+    if(!kbTopic || kbTopic==="Unsorted") return;
+    if(!confirm('Remove the topic "'+kbTopic+'"?\n\nIts articles are kept and moved to Unsorted.')) return;
+    api("POST",{action:"kb_topic_delete",name:kbTopic}).then(function(){ toast("Topic removed"); kbTopic="Unsorted"; refresh(); }).catch(function(e){ toast(e.message); });
+  });
+
+  // messages save
+  $("#maxReplies").addEventListener("change",function(){
+    setSetting("max_auto_replies_per_ticket",$("#maxReplies").value).then(function(){ toast("Saved — she'll hand over after "+$("#maxReplies").value+" replies on a ticket"); }).catch(function(e){ toast(e.message); });
+  });
+  $("#dailyCap").addEventListener("change",function(){
+    var v=$("#dailyCap").value.trim();
+    if(!/^\d{1,5}$/.test(v)){ toast("Enter a number"); return; }
+    setSetting("daily_send_cap",v).then(function(){ toast("Daily cap saved"); }).catch(function(e){ toast(e.message); });
+  });
+  $("#saveMsgs").addEventListener("click",function(){
+    Promise.all([
+      setSetting("human_response_time",$("#respTime").value.trim()),
+      setSetting("ack_template",$("#ackTemplate").value)
+    ]).then(function(){ toast("Messages saved") });
+  });
+
+  // ---- Ask Poppy ----
+  var apHistory=[], apBusy=false;
+  function apApi(body){
+    return fetch("/api/ask-poppy",{method:"POST",headers:authHeaders({"content-type":"application/json"}),body:JSON.stringify(body)})
+      .then(function(r){ if(!r.ok) return r.json().then(function(j){throw new Error(j.error||"error")}); return r.json(); });
+  }
+  function apAdd(cls,text){ var d=document.createElement("div"); d.className="ap-msg "+cls; d.textContent=text; $("#apLog").appendChild(d); $("#apLog").scrollTop=1e9; return d; }
+  function apAddCard(html){ var d=document.createElement("div"); d.className="ap-card"; d.innerHTML=html; $("#apLog").appendChild(d); $("#apLog").scrollTop=1e9; return d; }
+  function apDownload(id,title){
+    fetch("/api/ask-poppy?report="+id,{headers:authHeaders()})
+      .then(function(r){ if(!r.ok) throw new Error("download failed"); return r.blob(); })
+      .then(function(b){ var a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download=(title||"report").replace(/[^A-Za-z0-9 _-]/g,"").trim().replace(/\s+/g,"-")+".csv"; document.body.appendChild(a); a.click(); a.remove(); })
+      .catch(function(e){ toast(e.message); });
+  }
+  function apSend(){
+    if(apBusy) return;
+    var q=$("#apInput").value.trim(); if(!q) return;
+    $("#apInput").value=""; apAdd("user",q);
+    apHistory.push({role:"user",content:q});
+    var th=apAdd("think","Poppy is thinking…"); apBusy=true;
+    apApi({mode:"chat",messages:apHistory}).then(function(d){
+      th.remove();
+      apAdd("poppy",d.reply||"(no reply)");
+      apHistory.push({role:"assistant",content:d.reply||""});
+      (d.reports||[]).forEach(function(r){
+        var c=apAddCard("<h4>"+esc(r.title)+"</h4><div>"+r.row_count+" orders · "+(r.kind==="mailing_batch"?"mailing batch format":"order report")+"</div>");
+        var b=document.createElement("button"); b.className="save-btn"; b.style.marginTop="8px"; b.textContent="Download CSV";
+        b.addEventListener("click",function(){ apDownload(r.id,r.title); });
+        c.appendChild(b);
+      });
+      (d.proposals||[]).forEach(function(p){
+        var c=apAddCard("<h4>Poppy wants to remember this</h4><div><b>"+esc(p.title)+"</b></div><pre>"+esc(p.content)+"</pre>");
+        var ok=document.createElement("button"); ok.className="save-btn"; ok.textContent="Confirm — save to Knowledge";
+        var no=document.createElement("button"); no.className="small-btn"; no.style.marginLeft="8px"; no.textContent="Dismiss";
+        ok.addEventListener("click",function(){
+          api("POST",{action:"kb_save",slug:p.slug,title:p.title,content:p.content,active:true})
+            .then(function(){ toast("Saved — the next ticket uses it"); c.innerHTML="<h4>Saved ✓</h4><div>"+esc(p.title)+" is now in the Knowledge tab.</div>"; refresh(); })
+            .catch(function(e){ toast("Could not save: "+e.message); });
+        });
+        no.addEventListener("click",function(){ c.remove(); });
+        c.appendChild(ok); c.appendChild(no);
+      });
+    }).catch(function(e){ th.remove(); apAdd("poppy","Sorry — something went wrong: "+e.message); })
+      .then(function(){ apBusy=false; });
+  }
+  $("#apSend").addEventListener("click",apSend);
+  $("#apInput").addEventListener("keydown",function(e){ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); apSend(); } });
+  $$("#apMode button").forEach(function(b){ b.addEventListener("click",function(){
+    $$("#apMode button").forEach(function(x){x.setAttribute("aria-pressed",x===b?"true":"false")});
+    var test=b.dataset.apm==="test"; $("#apChat").hidden=test; $("#apTest").hidden=!test;
+  })});
+  $("#apTRun").addEventListener("click",function(){
+    var body=$("#apTBody").value.trim(); if(!body){ toast("Write the customer's email first"); return; }
+    var btn=$("#apTRun"); btn.disabled=true; btn.textContent="Running… (can take a minute)";
+    $("#apTOut").innerHTML="";
+    apApi({mode:"test",subject:$("#apTSubject").value.trim(),body:body,from_email:$("#apTEmail").value.trim()||undefined})
+      .then(function(d){
+        var h="";
+        h+="<div class='ap-test-block'><h4>What Poppy decided</h4><pre>Category: "+esc(d.category)+" (confidence "+esc(d.confidence)+")\n"+esc(d.summary||"")+"\n\nShe would: "+esc(d.would_do)+(d.escalation_reason?"\nEscalation reason: "+esc(d.escalation_reason):"")+"</pre></div>";
+        if(d.outgoing_email) h+="<div class='ap-test-block'><h4>"+(d.ask_missing?"Her question to the customer (the ticket waits for their reply)":d.handoff_card?"What she'd tell the customer as she hands it off":d.proposed_reply?"The email she would send":"Her first-touch acknowledgment (ticket still goes to the team)")+"</h4><pre>"+esc(d.outgoing_email)+"</pre></div>";
+        if(d.handoff_card) h+="<div class='ap-test-block'><h4>The card she'd leave for the team (internal)</h4><pre>"+esc(d.handoff_card)+"</pre></div>";
+        else if(d.first_touch==="NO_REPLY") h+="<div class='ap-test-block'><h4>No email</h4><pre>Poppy judged this a system/automated message and would stay silent.</pre></div>";
+        else h+="<div class='ap-test-block'><h4>No email</h4><pre>"+(d.category==="spam"?"Classified as spam — Poppy skips it.":"Nothing would be sent.")+"</pre></div>";
+        $("#apTOut").innerHTML=h;
+      })
+      .catch(function(e){ $("#apTOut").innerHTML="<div class='ap-test-block'><h4>Test failed</h4><pre>"+esc(e.message)+"</pre></div>"; })
+      .then(function(){ btn.disabled=false; btn.textContent="Run the test"; });
+  });
+
+  // ---- team tab (admin only) ----
+  var uLoaded=false;
+  function uRender(users){
+    var box=$("#uList");
+    if(!users.length){ box.innerHTML="<div class='empty'>No logins yet — everyone is using the master password. Create one per person above.</div>"; return; }
+    box.innerHTML="";
+    users.forEach(function(u){
+      var row=document.createElement("div"); row.className="rule-row";
+      var seen=u.last_seen?("last seen "+u.last_seen.slice(0,16).replace("T"," ")):"never signed in";
+      row.innerHTML="<div class='rule-name'><b>"+esc(u.name)+(u.active?"":" <span class='chip skip'>deactivated</span>")+"</b>"
+        +"<span>"+esc(u.email||"(no email - old passcode login)")+" · "+esc(seen)+"</span></div>";
+      var sel=document.createElement("select");
+      [["admin","admin"],["team","team"],["viewer","viewer"],["inventory","inventory only"],["askpoppy","ask poppy only"]].forEach(function(p){ var o=document.createElement("option"); o.value=p[0]; o.textContent=p[1]; if(u.role===p[0])o.selected=true; sel.appendChild(o); });
+      sel.addEventListener("change",function(){
+        api("POST",{action:"user_update",id:u.id,role:sel.value}).then(function(){ toast(u.name+" is now "+sel.value); }).catch(function(e){ toast(e.message); uLoad(); });
+      });
+      var isel=document.createElement("select"); isel.title="Inventory access";
+      [["none","Inv: none"],["view","Inv: view"],["edit","Inv: edit"]].forEach(function(p){ var o=document.createElement("option"); o.value=p[0]; o.textContent=p[1]; if((u.inv||"none")===p[0])o.selected=true; isel.appendChild(o); });
+      if(u.role==="admin"){ isel.disabled=true; isel.title="Admins always have full inventory access"; }
+      isel.addEventListener("change",function(){
+        api("POST",{action:"user_update",id:u.id,inv:isel.value}).then(function(){ toast(u.name+"'s inventory access: "+isel.value); }).catch(function(e){ toast(e.message); uLoad(); });
+      });
+      var rst=document.createElement("button"); rst.className="small-btn"; rst.textContent="Reset password";
+      rst.addEventListener("click",function(){
+        if(!confirm("Reset "+u.name+"'s password? Their current one stops working immediately.")) return;
+        api("POST",{action:"user_update",id:u.id,reset_password:true}).then(function(d){
+          uShowCode(u.name, u.email, d.passcode, "temporary password (reset)");
+        }).catch(function(e){ toast(e.message); });
+      });
+      var btn=document.createElement("button"); btn.className="small-btn"; btn.style.marginLeft="auto";
+      btn.textContent=u.active?"Deactivate":"Reactivate";
+      btn.addEventListener("click",function(){
+        api("POST",{action:"user_update",id:u.id,active:!u.active}).then(function(){ toast((u.active?"Deactivated ":"Reactivated ")+u.name); uLoad(); }).catch(function(e){ toast(e.message); });
+      });
+      row.appendChild(sel); row.appendChild(isel); row.appendChild(rst); row.appendChild(btn); box.appendChild(row);
+    });
+  }
+  function uLoad(){ api("POST",{action:"users_list"}).then(function(d){ uRender(d.users||[]); }).catch(function(e){ $("#uList").innerHTML="<div class='empty'>"+esc(e.message)+"</div>"; }); }
+  function uShowCode(name, email, passcode, label){
+    var codeBox=$("#uNewCode"); codeBox.hidden=false;
+    codeBox.innerHTML="<b>"+esc(name)+"'s "+esc(label||"temporary password")+":</b> <span class='mono' style='font-size:15px'>"+esc(passcode)+"</span>"
+      +" — they sign in with <b>"+esc(email)+"</b> + this password, then change it via the \"change password\" link. Copy it now and send it privately. <b>It is never shown again.</b> ";
+    var cp=document.createElement("button"); cp.className="small-btn"; cp.textContent="Copy";
+    cp.addEventListener("click",function(){ try{ navigator.clipboard.writeText(passcode); toast("Copied"); }catch(e){ toast("Select and copy it manually"); } });
+    codeBox.appendChild(cp);
+  }
+  $("#uCreate").addEventListener("click",function(){
+    var name=$("#uName").value.trim(); if(!name){ toast("Give them a name first"); return; }
+    var email=$("#uEmail").value.trim(); if(!email){ toast("Their email is their username - it's required"); return; }
+    api("POST",{action:"user_create",name:name,email:email,role:$("#uRole").value,inv:$("#uInv").value}).then(function(d){
+      $("#uName").value=""; $("#uEmail").value="";
+      uShowCode(name, d.email, d.passcode, "temporary password");
+      uLoad();
+    }).catch(function(e){ toast("Could not create: "+e.message); });
+  });
+  $$(".tab").forEach(function(t){ if(t.dataset.panel==="team") t.addEventListener("click",function(){ if(!uLoaded){ uLoaded=true; uLoad(); } }); });
+
+  // ---- audit tab (admin only) ----
+  var aRows=[];
+  function aRender(rows){
+    aRows=rows;
+    var box=$("#aOut");
+    if(!rows.length){ box.innerHTML="<div class='empty'>No entries match those filters.</div>"; return; }
+    box.innerHTML="";
+    var wrap=document.createElement("div"); wrap.className="feed";
+    rows.forEach(function(r){
+      var el=document.createElement("details"); el.className="entry";
+      var t=(r.created_at||"").slice(0,19).replace("T"," ");
+      var head="<summary style='cursor:pointer; list-style:none'><span class='mono' style='font-size:12.5px'>"+esc(t)+"</span> "
+        +"<b>"+esc(r.actor)+"</b> · "+esc(r.action)
+        +(r.gorgias_ticket_id?" · <span class='mono'>#"+r.gorgias_ticket_id+"</span>":"")
+        +(r.ok===false?" <span class='chip esc'>failed</span>":"")+"</summary>";
+      var body="";
+      if(r.input) body+="<div class='q' style='margin-top:8px'><b>input:</b> "+esc(r.input)+"</div>";
+      if(r.output) body+="<div class='q'><b>output:</b> "+esc(r.output)+"</div>";
+      el.innerHTML=head+(body||"<div class='q' style='margin-top:8px'>(no detail recorded)</div>");
+      wrap.appendChild(el);
+    });
+    box.appendChild(wrap);
+    if(rows.length>=+($("#aLimit").value)) {
+      var note=document.createElement("p"); note.className="foot-note";
+      note.textContent="Showing the newest "+rows.length+" — narrow the dates or filters to see further back.";
+      box.appendChild(note);
+    }
+  }
+  $("#aRun").addEventListener("click",function(){
+    var btn=$("#aRun"); btn.disabled=true; btn.textContent="Searching…";
+    api("POST",{action:"audit_query",date_from:$("#aFrom").value||undefined,date_to:$("#aTo").value||undefined,
+      actor:$("#aActor").value.trim()||undefined,act:$("#aAction").value.trim()||undefined,
+      ticket_id:$("#aTicket").value.trim()||undefined,limit:+($("#aLimit").value)})
+      .then(function(d){ aRender(d.rows||[]); })
+      .catch(function(e){ $("#aOut").innerHTML="<div class='empty'>"+esc(e.message)+"</div>"; })
+      .then(function(){ btn.disabled=false; btn.textContent="Search"; });
+  });
+  $("#aCsv").addEventListener("click",function(){
+    if(!aRows.length){ toast("Run a search first"); return; }
+    var esc2=function(v){ v=String(v==null?"":v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+    var csv=["Time,Actor,Action,Ticket,OK,Input,Output"].concat(aRows.map(function(r){
+      return [r.created_at,r.actor,r.action,r.gorgias_ticket_id||"",r.ok===false?"FAILED":"ok",r.input||"",r.output||""].map(esc2).join(",");
+    })).join("\r\n");
+    var a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"})); a.download="poppy-audit.csv";
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+
+  // ---- batches tab ----
+  var bLoaded=false;
+  function bApi(qs){
+    return fetch("/api/batch-report"+(qs||""),{headers:authHeaders()})
+      .then(function(r){ if(r.status===401) throw new Error("unauthorized"); return r.json(); })
+      .then(function(j){ if(j.error==="drive_not_configured") { var e=new Error("drive"); e.detail=j.detail; throw e; } if(j.error) throw new Error(j.error); return j; });
+  }
+  function bRenderReport(rep){
+    if(!rep){ $("#bOut").innerHTML="<div class='empty'>No report yet — hit <b>Refresh counts</b> to run the first one (about a minute).</div>"; $("#bStamp").textContent=""; return; }
+    var when=new Date(rep.generated_at);
+    $("#bStamp").textContent="Last counted "+when.toLocaleString()+" · "+rep.files_counted+" batch files";
+    var h="";
+    h+="<div class='batch-totals'>";
+    h+="<div class='stat'><b>"+rep.active_total.toLocaleString()+"</b><span>Active</span></div>";
+    h+="<div class='stat'><b>"+rep.canceled_total.toLocaleString()+"</b><span>Canceled</span></div>";
+    h+="<div class='stat'><b>"+(rep.active_total+rep.canceled_total).toLocaleString()+"</b><span>Total rows</span></div>";
+    h+="<div class='stat'><b>"+rep.files_counted+"</b><span>Batches</span></div>";
+    h+="</div>";
+    if(rep.empty_files && rep.empty_files.length) h+="<div class='batch-warn'><b>Empty batch files</b> (a header but no rows — worth checking): "+rep.empty_files.map(esc).join(", ")+"</div>";
+    if(rep.errors && rep.errors.length) h+="<div class='batch-warn'><b>Couldn't read:</b> "+rep.errors.map(esc).join("; ")+"</div>";
+    (rep.stories||[]).forEach(function(s){
+      var newest=0; s.batches.forEach(function(b){ if(b.batch>newest) newest=b.batch; });
+      h+="<details class='batch-story'><summary>"+esc(s.name)+" <span class='chip cat'>"+esc(s.code)+"</span>";
+      h+="<span class='foot-note'>"+s.batches.length+" batches · <b class='batch-act'>"+s.active.toLocaleString()+" active</b> · "+s.canceled.toLocaleString()+" canceled</span></summary>";
+      h+="<table class='batch-table'><tr><th>Batch</th><th>Active</th><th>Canceled</th><th>Total</th></tr>";
+      s.batches.forEach(function(b){
+        var flag = b.active+b.canceled===0 ? " · empty" : (b.batch===newest ? " · newest" : "");
+        h+="<tr><td>"+esc(s.code)+"-BATCH-"+b.batch+esc(flag)+"</td><td class='batch-act'>"+b.active.toLocaleString()+"</td><td class='batch-can'>"+b.canceled.toLocaleString()+"</td><td>"+(b.active+b.canceled).toLocaleString()+"</td></tr>";
+      });
+      h+="<tr><td><b>Total</b></td><td class='batch-act'><b>"+s.active.toLocaleString()+"</b></td><td class='batch-can'><b>"+s.canceled.toLocaleString()+"</b></td><td><b>"+(s.active+s.canceled).toLocaleString()+"</b></td></tr>";
+      h+="</table></details>";
+    });
+    $("#bOut").innerHTML=h;
+  }
+  function bFail(e){
+    if(e && e.message==="drive"){ $("#bOut").innerHTML="<div class='empty'>Drive isn't connected yet, so I can't read the batch files.<br><br>"+esc(e.detail||"")+"<br>The setup steps are in the Playbook.</div>"; }
+    else $("#bOut").innerHTML="<div class='empty'>Couldn't load the batch report: "+esc(e&&e.message||"error")+"</div>";
+    $("#bStamp").textContent="";
+  }
+  function bLoad(){ bApi("").then(function(j){ bRenderReport(j.report); }).catch(bFail); }
+  $("#bRefresh").addEventListener("click",function(){
+    var btn=$("#bRefresh"); btn.disabled=true; btn.textContent="Counting every batch file… (about a minute)";
+    bApi("?refresh=1").then(function(j){ bRenderReport(j.report); toast("Batch counts refreshed"); }).catch(bFail)
+      .then(function(){ btn.disabled=false; btn.textContent="Refresh counts"; });
+  });
+  $("#bCsv").addEventListener("click",function(){
+    fetch("/api/batch-report?csv=1",{headers:authHeaders()})
+      .then(function(r){ if(!r.ok) throw new Error("download failed"); var ct=r.headers.get("content-type")||""; if(ct.indexOf("csv")<0) throw new Error("no report yet — refresh first"); return r.blob(); })
+      .then(function(b){ var a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download="active-batch-report.csv"; document.body.appendChild(a); a.click(); a.remove(); })
+      .catch(function(e){ toast(e.message); });
+  });
+  $$(".tab").forEach(function(t){ if(t.dataset.panel==="batches") t.addEventListener("click",function(){ if(!bLoaded){ bLoaded=true; bLoad(); } }); });
+
+  // ---- activity feed: category tabs + date range ----
+  var actFilter="all", actRange="today";
+  function actStatus(t){
+    if(t.agent_status==="escalated") return "team";
+    if(t.agent_status==="replied") return t.agent_reply ? "sent" : "draft";
+    return "other";
+  }
+  function actInRange(t){
+    var d=new Date(t.updated_at||0);
+    if(isNaN(d.getTime())) return actRange==="all";
+    var now=new Date(), startToday=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    if(actRange==="today") return d>=startToday;
+    if(actRange==="yest"){ var y=new Date(startToday); y.setDate(y.getDate()-1); return d>=y && d<startToday; }
+    if(actRange==="7"){ var w=new Date(startToday); w.setDate(w.getDate()-6); return d>=w; }
+    if(actRange==="custom"){
+      var f=$("#cFrom").value, t2=$("#cTo").value;
+      if(f && d < new Date(f+"T00:00:00")) return false;
+      if(t2 && d > new Date(t2+"T23:59:59")) return false;
+      return true;
+    }
+    return true;
+  }
+  function renderFeed(){
+    if(!DATA || !DATA.activity) return;
+    var pool=DATA.activity.filter(actInRange);
+    var counts={all:pool.length,sent:0,draft:0,team:0,flagged:0};
+    pool.forEach(function(t){ var st=actStatus(t); if(counts[st]!==undefined) counts[st]++; if(t.flagged) counts.flagged++; });
+    $$("#actTabs .badge").forEach(function(b){ b.textContent=counts[b.dataset.c]||0; });
+    var rows=pool.filter(function(t){ return actFilter==="all" || (actFilter==="flagged" ? t.flagged : actStatus(t)===actFilter); });
+    var feed=$("#feed"); feed.innerHTML="";
+    if(!DATA.activity.length){
+      feed.innerHTML='<div class="empty">No activity yet. Once Poppy is wired into Gorgias, every reply, draft, and escalation shows up here.</div>'; return;
+    }
+    if(!rows.length){ feed.innerHTML='<div class="empty">Nothing in this range.</div>'; return; }
+    rows.forEach(function(t){
+      var st=t.agent_status, chip = st==="replied" ? (t.agent_reply?'<span class="chip sent">Sent</span>':'<span class="chip draft">Draft \u2014 needs review</span>')
+        : st==="escalated"?'<span class="chip esc">To your team</span>'
+        : '<span class="chip skip">'+esc(st)+'</span>';
+      var body = t.agent_reply ? '<p class="reply">'+esc(t.agent_reply)+'</p>'
+        : st==="escalated" ? '<p class="reply">Handed to a human. '+esc(t.escalation_reason||"")+'</p>'
+        : st==="replied" ? '<p class="reply">Proposed reply is waiting as an internal note in Gorgias.</p>' : "";
+      var gorgiasLink = DATA.gorgias_domain ? '<a class="small-btn" target="_blank" rel="noopener" href="https://'+esc(DATA.gorgias_domain)+'.gorgias.com/app/ticket/'+t.gorgias_ticket_id+'">Open in Gorgias \u2197</a>' : "";
+      var el=document.createElement("div");
+      el.className="entry"+(st==="escalated"?" escalated":"");
+      el.innerHTML='<div class="entry-top"><span class="who">'+esc(t.customer_name||t.customer_email||"Customer")+'</span>'
+        +'<span class="tick mono">#'+t.gorgias_ticket_id+' \u00b7 '+esc((t.updated_at||"").slice(0,16).replace("T"," "))+'</span>'
+        +(t.channel?'<span class="chip skip">'+esc(chanLabel(t.channel))+'</span>':"")
+        +(t.category?'<span class="chip cat">'+esc(t.category.replace(/_/g," "))+'</span>':"")+chip+'</div>'
+        +'<p class="q">Subject: <b>'+esc(t.subject||"(none)")+'</b></p>'+body
+        +'<div class="entry-actions">'+(t.flagged?'<span class="flagged-chip">Flagged for review</span>'
+        :'<button class="small-btn" data-flag="'+t.gorgias_ticket_id+'">Flag as wrong</button>')+gorgiasLink+'</div>';
+      feed.appendChild(el);
+    });
+    $$("[data-flag]",feed).forEach(function(b){ b.addEventListener("click",function(){
+      api("POST",{action:"flag",gorgias_ticket_id:parseInt(b.dataset.flag,10)}).then(function(){ toast("Flagged \u2014 added to the review queue"); refresh(); }).catch(function(e){toast("Could not flag: "+e.message)});
+    })});
+  }
+  $$("#actTabs .sub").forEach(function(b){ b.addEventListener("click",function(){
+    $$("#actTabs .sub").forEach(function(x){x.classList.toggle("active",x===b)});
+    actFilter=b.dataset.f; renderFeed();
+  })});
+  $$("#rangeSel button").forEach(function(b){ b.addEventListener("click",function(){
+    $$("#rangeSel button").forEach(function(x){x.setAttribute("aria-pressed", x===b?"true":"false")});
+    actRange=b.dataset.r;
+    $("#customRange").classList.toggle("on", actRange==="custom");
+    renderFeed();
+  })});
+  $("#cFrom").addEventListener("change",renderFeed);
+  $("#cTo").addEventListener("change",renderFeed);
+
+  // ---- needs-a-human queue ----
+  var QFILTERS=[["all","All"],["ai-resend","Resends"],["ai-refund","Refunds"],["ai-address-change","Address changes"],["ai-damaged","Damaged"],["ai-payment","Payment"],["ai-upset","Upset"]];
+  var CAT_TAG={resend:"ai-resend",missing_letter:"ai-resend",damaged_or_missing:"ai-damaged",refund_or_cancel:"ai-refund",cancellation:"ai-refund",payment_issue:"ai-payment",address_change:"ai-address-change",gifting:"ai-gifting",upset_customer:"ai-upset",legal_or_press:"ai-upset"};
+  function catTagOf(t){ return CAT_TAG[t.category] || (t.category?("ai-"+String(t.category).replace(/_/g,"-")):""); }
+  var qFilter="all";
+  function qRender(){
+    if(!DATA || !DATA.activity) return;
+    var items=DATA.activity.filter(function(t){ return t.agent_status==="escalated"; });
+    var pend=(DATA.pending_actions||[]);
+    var badge=$("#queueCount");
+    badge.textContent=items.length+pend.length;
+    badge.hidden = !(items.length+pend.length);
+    var fr=$("#queueFilters"); fr.innerHTML="";
+    QFILTERS.forEach(function(p){
+      var n = p[0]==="all" ? items.length : items.filter(function(t){return catTagOf(t)===p[0]}).length;
+      if(p[0]!=="all" && !n) return;
+      var b=document.createElement("button"); b.className="sub"+(qFilter===p[0]?" active":"");
+      b.innerHTML=esc(p[1])+' <span class="badge">'+n+'</span>';
+      b.addEventListener("click",function(){ qFilter=p[0]; qRender(); });
+      fr.appendChild(b);
+    });
+    var box=$("#queueList"); box.innerHTML="";
+    pend.forEach(function(p){
+      if(qFilter!=="all" && qFilter!=="ai-address-change") return;
+      var el=document.createElement("div"); el.className="qcard amber";
+      el.innerHTML='<div class="qhead"><span class="subj">'+esc(p.order_name||"Address change")+'</span>'
+        +'<span class="tag cat">ai-address-change</span><span class="tag act">ai-action-staged</span>'
+        +'<span class="when">#'+p.gorgias_ticket_id+' \u00b7 '+esc((p.created_at||"").slice(0,16).replace("T"," "))+'</span></div>'
+        +'<div class="qnote"><b>\ud83e\udd16 Poppy \u2014 staged, waiting for you</b>\n'+esc(p.customer_email||"")+'\nOld: '+esc(p.old_address||"?")+'\nNew: '+esc(p.new_address||"?")+'\n\nApproving applies it in Shopify with an order note and a "Poppy Address Change" tag.</div>'
+        +'<div class="qacts"><button class="save-btn" style="margin-top:0" data-approve="'+p.id+'">Approve change</button>'
+        +'<button class="small-btn" data-reject="'+p.id+'">Reject</button>'
+        +(DATA.gorgias_domain?'<a class="small-btn" target="_blank" rel="noopener" href="https://'+esc(DATA.gorgias_domain)+'.gorgias.com/app/ticket/'+p.gorgias_ticket_id+'">Open in Gorgias \u2197</a>':"")+'</div>';
+      box.appendChild(el);
+    });
+    items.filter(function(t){ return qFilter==="all" || catTagOf(t)===qFilter; }).forEach(function(t){
+      var el=document.createElement("div"); el.className="qcard";
+      el.innerHTML='<div class="qhead"><span class="subj">'+esc(t.subject||"(no subject)")+'</span>'
+        +(catTagOf(t)?'<span class="tag cat">'+esc(catTagOf(t))+'</span>':"")+'<span class="tag act">ai-escalated</span>'
+        +'<span class="when">#'+t.gorgias_ticket_id+' \u00b7 '+esc((t.updated_at||"").slice(0,16).replace("T"," "))+'</span></div>'
+        +'<div class="qnote"><b>\ud83e\udd16 Poppy \u2014 what I found</b>\n'+esc(t.escalation_reason||"Handed to a human.")+'\n\nCustomer: '+esc(t.customer_name||t.customer_email||"?")+'\nThe full investigation note is on the ticket in Gorgias.</div>'
+        +'<div class="qacts">'+(DATA.gorgias_domain?'<a class="save-btn" style="margin-top:0" target="_blank" rel="noopener" href="https://'+esc(DATA.gorgias_domain)+'.gorgias.com/app/ticket/'+t.gorgias_ticket_id+'">Open in Gorgias \u2197</a>':"")
+        +(t.flagged?'<span class="flagged-chip">Flagged</span>':'<button class="small-btn" data-flag="'+t.gorgias_ticket_id+'">Flag as wrong</button>')+'</div>';
+      box.appendChild(el);
+    });
+    if(!box.children.length) box.innerHTML='<div class="empty">Nothing waiting on a person right now.</div>';
+    $$("[data-approve]",box).forEach(function(b){ b.addEventListener("click",function(){
+      if(!confirm("Apply this address change in Shopify?")) return;
+      api("POST",{action:"resolve_action",id:parseInt(b.dataset.approve,10),decision:"approve"}).then(function(){ toast("Applied"); refresh(); }).catch(function(e){toast(e.message)});
+    })});
+    $$("[data-reject]",box).forEach(function(b){ b.addEventListener("click",function(){
+      api("POST",{action:"resolve_action",id:parseInt(b.dataset.reject,10),decision:"reject"}).then(function(){ toast("Rejected"); refresh(); }).catch(function(e){toast(e.message)});
+    })});
+    $$("[data-flag]",box).forEach(function(b){ b.addEventListener("click",function(){
+      api("POST",{action:"flag",gorgias_ticket_id:parseInt(b.dataset.flag,10)}).then(function(){ toast("Flagged"); refresh(); }).catch(function(e){toast(e.message)});
+    })});
+  }
+
+  // ---- inventory tab (two-pool 12-month runway) ----
+  var iLoaded=false, iForecast=null;
+  function iApi(qs, opts){
+    return fetch("/api/inventory"+(qs||""), Object.assign({headers:authHeaders(opts&&opts.body?{"Content-Type":"application/json"}:undefined)}, opts||{}))
+      .then(function(r){ return r.json().then(function(j){ if(!r.ok) throw new Error(j.error||("HTTP "+r.status)); return j; }); });
+  }
+  function iCanEdit(){ return DATA && DATA.me && (DATA.me.role==="admin" || (DATA.me.inv==="edit" && DATA.me.role!=="viewer")); }
+  function iNum(v){ return v==null ? "—" : Number(v).toLocaleString(); }
+  function iWhen(u){ if(!u||!u.at) return ""; var d=new Date(u.at); return "Updated "+d.toLocaleString()+(u.by?(" by "+String(u.by).replace(/^(console|seed):\s*/,"")):""); }
+  function iShort(lbl){ var p=lbl.split(" "); return p[0]+" "+p[1].slice(2)+"<br><span class='mnum'>M"+lbl.slice(-1)+"</span>"; }
+  function iTiny(lbl){ var p=lbl.split(" "); return p[0]+" "+p[1].slice(2)+" M"+lbl.slice(-1); }
+  function iModal(title, body, when){
+    var m=document.createElement("div"); m.id="invModal";
+    m.innerHTML="<div class='box'><h3>"+title+"</h3><div>"+body+"</div>"+(when?"<div class='when'>"+esc(when)+"</div>":"")+"<button class='save-btn' id='invModalOk'>OK</button></div>";
+    document.body.appendChild(m);
+    function close(){ m.remove(); }
+    m.addEventListener("click",function(e){ if(e.target===m) close(); });
+    m.querySelector("#invModalOk").addEventListener("click",close);
+  }
+  var iActiveStory=null;
+  function iRender(f){
+    iForecast=f;
+    $("#iStamp").textContent="After "+f.last_mailing+" · batch counts from "+(f.batch_report_at? new Date(f.batch_report_at).toLocaleString():"?");
+    // summary band + legend
+    var b="<div class='inv-band'>";
+    b+="<div class='stat'><b>"+f.summary.print_needed+"</b><span>need a print order within 12 months</span></div>";
+    b+="<div class='stat'><b>"+f.summary.order_now+"</b><span>order-by is NOW (or passed)</span></div>";
+    b+="<div class='stat'><b>"+f.summary.deliver_soon+"</b><span>need a PZ delivery within "+f.lead_mailings+" mailings</span></div>";
+    b+="<div class='inv-legend'>";
+    b+="<span><span class='inv-sw sw-ok'></span>from our shelf</span>";
+    b+="<span><span class='inv-sw sw-pz'></span>mailing from PZ stock</span>";
+    b+="<span><span class='inv-sw sw-out'></span>PZ out — print needed</span>";
+    b+="</div></div>";
+    $("#iBand").innerHTML=b;
+    // story tabs
+    if(!iActiveStory || !f.stories.some(function(s){return s.code===iActiveStory})) iActiveStory=f.stories.length?f.stories[0].code:null;
+    var t="";
+    f.stories.forEach(function(s){
+      t+="<button class='stab"+(s.code===iActiveStory?" active":"")+"' data-st='"+esc(s.code)+"'>"+esc(s.name)+(s.order_now?"<span class='badge'>"+s.order_now+"</span>":"")+"</button>";
+    });
+    $("#iStoryTabs").innerHTML=t;
+    $$("#iStoryTabs .stab").forEach(function(btn){ btn.addEventListener("click",function(){ iActiveStory=btn.dataset.st; iRender(iForecast); window.scrollTo(0,0); }); });
+    iRenderStory(f);
+  }
+  function iRenderStory(f){
+    var s=f.stories.find(function(x){return x.code===iActiveStory});
+    if(!s){ $("#iOut").innerHTML="<div class='empty'>No data.</div>"; return; }
+    var edit=iCanEdit();
+    var h="<div class='pmeta foot-note' style='margin:0 0 10px'>"+s.letters.reduce(function(n,l){return n+l.pieces.length},0)+" pieces · "+s.letters.length+" letters · <b style='color:var(--crit)'>"+s.print_needed+" need a print order within 12 months</b> · "+s.order_now+" at or past the order-now point</div>";
+    // Projected mailing size for this story - once, at the top of the page.
+    h+="<div class='inv-projstrip'><b>Projected "+esc(s.name)+" subscribers per mailing</b><div class='pcols'>";
+    s.mailing_totals.forEach(function(n,i){ h+="<span><b>"+n.toLocaleString()+"</b><em>"+esc(iTiny(f.labels[i]))+"</em></span>"; });
+    h+="</div></div>";
+    // letter boxes
+    var labels=f.labels;
+    s.letters.forEach(function(l){
+      var lrisk=l.pieces.filter(function(p){return p.print_i!=null}).length;
+      h+="<div class='letterbox'><div class='letterhead'><span class='lnum'>"+esc(s.name)+" · Letter #"+l.letter+"</span><span class='lsub'>"+l.pieces.length+" pieces</span>"+(lrisk?"<span class='lrisk'>"+lrisk+" need printing</span>":"")+"</div>";
+      h+="<table class='invgrid'><thead><tr><th class='stickL c-piece'>Piece</th><th class='stickL2 c-title'>Title</th><th>Type</th><th class='startcol'>Our shelf</th>";
+      labels.forEach(function(lbl){ h+="<th class='mcol'>"+iShort(lbl)+"</th>"; });
+      h+="<th class='totcol'>12-mo need</th><th class='pzcol'>PZ capacity</th><th class='evcol'>Deliver by</th><th class='evcol'>Order print by</th><th class='endcol'>End</th>"+(edit?"<th></th>":"")+"</tr></thead><tbody>";
+      // batch row: which batch is on THIS letter at each mailing, and its count (feeds every piece row below)
+      h+="<tr class='batchrow'><td class='stickL c-piece'>Batch</td><td class='stickL2 c-title'>"+esc(l.bstory)+" batch on this letter each mailing"+(edit?" — click a count to enter the final number":"")+"</td><td></td><td class='startcol'></td>";
+      l.batches.forEach(function(bb){
+        if(!bb){ h+="<td class='bcell'>—</td>"; return; }
+        var cls="bcell"+(bb.ovr?" bovr":(bb.est?" best":""))+(edit?" beditable":"");
+        var tag=bb.ovr?" (manual)":(bb.est?" (estimate)":"");
+        h+="<td class='"+cls+"' data-bst='"+esc(l.bstory)+"' data-b='"+bb.b+"' data-n='"+bb.n+"' data-est='"+(bb.est?1:0)+"' title='"+esc(l.bstory)+"-BATCH-"+bb.b+esc(tag)+"'><span class='bnum'>#"+bb.b+"</span>"+bb.n.toLocaleString()+(bb.est?"<span class='bmark'>est</span>":(bb.ovr?"<span class='bmark'>manual</span>":""))+"</td>";
+      });
+      h+="<td class='totcol'></td><td class='pzcol'></td><td></td><td></td><td class='endcol'></td>"+(edit?"<td></td>":"")+"</tr>";
+      l.pieces.forEach(function(p){
+        var title=p.name.indexOf(p.code)===0 ? p.name.slice(p.code.length).replace(/^[\s•]+/,"") : p.name;
+        var rowCls = p.print_i!=null ? " rowout" : (p.deliver_i!=null ? " rowamber" : "");
+        h+="<tr class='"+rowCls+"'><td class='stickL c-piece mono'>"+esc(p.code)+"</td><td class='stickL2 c-title'>"+esc(title)+"</td><td class='typ'>"+esc(p.type)+"</td>";
+        var ourCls=(p.our!=null&&p.our<0)?" neg":"";
+        h+="<td class='startcol"+ourCls+(edit?" editcell":"")+"' data-code='"+esc(p.code)+"' data-kind='our' title='"+esc(iWhen(p.our_upd))+"'>"+iNum(p.our)+"</td>";
+        p.cells.forEach(function(c,j){
+          var cls="mcell";
+          if(c.state==="pz") cls+=" frompz";
+          if(c.state==="out") cls+=" runout";
+          if(j===p.deliver_i) cls+=" deliver-first";
+          if(j===p.print_i) cls+=" runout-first";
+          h+="<td class='"+cls+"'>"+iNum(c.show)+(c.need?"<span class='need'>−"+c.need.toLocaleString()+"</span>":"<span class='need'>·</span>")+"</td>";
+        });
+        h+="<td class='totcol'>"+p.total_need.toLocaleString()+"</td>";
+        h+="<td class='pzcol"+(edit?" editcell":"")+"' data-code='"+esc(p.code)+"' data-kind='pz' title='"+esc(iWhen(p.pz_upd))+"'>"+iNum(p.pz)+"</td>";
+        h+="<td class='evcol amberlbl'>"+(p.deliver_i!=null?iTiny(labels[p.deliver_i]):"—")+"</td>";
+        if(p.order_i!=null){ h+= p.order_i<=0 ? "<td class='evcol ordernow'>NOW</td>" : "<td class='evcol orderlbl'>"+iTiny(labels[p.order_i])+"</td>"; }
+        else h+="<td class='evcol'>—</td>";
+        h+="<td class='endcol"+(p.end!=null&&p.end<0?" runout":"")+"'>"+iNum(p.end)+"</td>";
+        if(edit) h+="<td><button class='small-btn inv-deliv' data-code='"+esc(p.code)+"'>Delivery</button></td>";
+        h+="</tr>";
+      });
+      h+="</tbody></table></div>";
+    });
+    $("#iOut").innerHTML=h;
+    if(edit){
+      $$("#iOut .editcell").forEach(function(td){ td.addEventListener("click",function(){ iEditCount(td.dataset.code, td.dataset.kind); }); });
+      $$("#iOut .inv-deliv").forEach(function(btn){ btn.addEventListener("click",function(){ iDelivery(btn.dataset.code); }); });
+      $$("#iOut .bcell.beditable").forEach(function(ch){ ch.addEventListener("click",function(){ iEditBatch(ch.dataset.bst, ch.dataset.b, ch.dataset.n, ch.dataset.est==="1"); }); });
+    }
+  }
+  function iEditCount(code, kind){
+    var label = kind==="our" ? "in-house (our shelf) count" : "PZ stock";
+    var v=prompt("New "+label+" for "+code+":"); if(v==null||!v.trim()) return;
+    var asof=prompt("When was this count taken?\n\nLeave blank if it was just done. Otherwise enter the mailing it came after, like 2026-09 M1 (year-month, then M1 or M2)."); if(asof==null) return;
+    if(!confirm("This will update counts, please confirm this number is accurate before proceeding.\n\n"+code+" "+label+" → "+v)) return;
+    var body={action:"set_stock",code:code,as_of:asof.trim()||undefined};
+    body[kind==="our"?"our":"pz"]=v.trim();
+    iApi("",{method:"POST",body:JSON.stringify(body)}).then(function(d){
+      iModal("Count updated", esc(code)+" "+label+" is now <b>"+esc(v.trim())+"</b>.", "Updated "+new Date(d.updated_at).toLocaleString()+" by "+(d.by||"you"));
+      iLoad();
+    }).catch(function(e){ toast(e.message); });
+  }
+  function iDelivery(code){
+    var q=prompt("PZ delivery received for "+code+" — quantity:\n(adds to your shelf, deducts from PZ's stock)"); if(q==null||!q.trim()) return;
+    if(!confirm("This will update counts, please confirm this number is accurate before proceeding.\n\nDelivery of "+q+" × "+code)) return;
+    iApi("",{method:"POST",body:JSON.stringify({action:"delivery",code:code,qty:+q})}).then(function(d){
+      iModal("Delivery recorded", (+q).toLocaleString()+" × "+esc(code)+" moved from PZ to your shelf.", "Updated "+new Date(d.updated_at).toLocaleString()+" by "+(d.by||"you"));
+      iLoad();
+    }).catch(function(e){ toast(e.message); });
+  }
+  function iEditBatch(story, batch, current, isEst){
+    var v=prompt((isEst?"Enter the FINAL count for ":"Count for ")+story+"-BATCH-"+batch+" — currently "+(+current||0).toLocaleString()+(isEst?" (estimate)":"")+":\n(leave blank and hit OK to CLEAR a manual override and go back to the Drive count / estimate)");
+    if(v==null) return;
+    var msg = v.trim() ? "This will update counts, please confirm this number is accurate before proceeding.\n\n"+story+"-BATCH-"+batch+" → "+v
+      : "Clear the manual override on "+story+"-BATCH-"+batch+" and go back to the Drive count?";
+    if(!confirm(msg)) return;
+    iApi("",{method:"POST",body:JSON.stringify({action:"set_batch",story:story,batch:+batch,active:v.trim()||null})}).then(function(d){
+      iModal(v.trim()?"Batch override set":"Override cleared", esc(story)+"-BATCH-"+batch+(v.trim()?" is now counted as <b>"+esc(v.trim())+"</b> (manual)":" uses the Drive count again")+".", "Updated "+new Date(d.updated_at).toLocaleString()+" by "+(d.by||"you"));
+      iLoad();
+    }).catch(function(e){ toast(e.message); });
+  }
+  function iLoad(){
+    iApi("").then(function(j){ iRender(j.forecast); })
+      .catch(function(e){ $("#iBand").innerHTML=""; $("#iStoryTabs").innerHTML=""; $("#iOut").innerHTML="<div class='empty'>"+esc(e.message||"error")+(String(e.message||"").indexOf("no_batch_report")===0?"<br><br>Hit <b>Refresh batch counts</b> above (or the Batches tab) first — the forecast is built from those.":"")+"</div>"; });
+  }
+  $("#iReload").addEventListener("click",iLoad);
+  $("#iRefreshBatches").addEventListener("click",function(){
+    var btn=$("#iRefreshBatches"); btn.disabled=true; btn.textContent="Re-counting batch files… (~1 min)";
+    fetch("/api/batch-report?refresh=1",{headers:authHeaders()})
+      .then(function(r){ return r.json(); })
+      .then(function(j){ if(j.error) throw new Error(j.error); toast("Batch counts refreshed"); iLoad(); })
+      .catch(function(e){ toast(e.message||"refresh failed"); })
+      .then(function(){ btn.disabled=false; btn.textContent="Refresh batch counts"; });
+  });
+  $("#iPzPull").addEventListener("click",function(){
+    if(!iCanEdit()){ toast("Your inventory access is view-only"); return; }
+    if(!confirm("This will update counts, please confirm before proceeding.\n\nOur shelf will be overwritten from the MAILING COUNTER tab (ALL UP TOTAL column) and PZ stock from the PZ's Count tab (PZ Count column) of the inventory workbook. Pieces missing from a tab are left alone.")) return;
+    var shelfAsof=prompt("When was the SHELF count taken? (Mailing Counter tab)\n\nLeave blank if it's current. Otherwise the mailing it came after, like 2026-09 M1."); if(shelfAsof==null) return;
+    var pzAsof=prompt("When was the PZ count taken?\n\nLeave blank if it's current. Otherwise the mailing it came after, like 2026-08 M1."); if(pzAsof==null) return;
+    var btn=$("#iPzPull"); btn.disabled=true; btn.textContent="Pulling from the sheet…";
+    iApi("",{method:"POST",body:JSON.stringify({action:"sheet_pull",shelf_as_of:shelfAsof.trim()||undefined,pz_as_of:pzAsof.trim()||undefined})}).then(function(d){
+      iModal("Counts pulled from the sheet", d.shelf_updated.toLocaleString()+" shelf counts (Mailing Counter · ALL UP TOTAL) and "+d.pz_updated.toLocaleString()+" PZ counts (PZ's Count · PZ Count) updated."+(d.not_in_catalog&&d.not_in_catalog.length?"<br>Not in the piece catalog (skipped): "+esc(d.not_in_catalog.join(", ")):""), "Updated "+new Date(d.updated_at).toLocaleString()+" by "+(d.by||"you"));
+      iLoad();
+    }).catch(function(e){ toast(e.message); })
+      .then(function(){ btn.disabled=false; btn.textContent="Pull counts from sheet"; });
+  });
+  $("#iOrder").addEventListener("click",function(){
+    var btn=$("#iOrder"); btn.disabled=true; btn.textContent="Computing…";
+    iApi("?order="+$("#iHorizon").value).then(function(j){
+      var o=j.order, h="";
+      h+="<div class='batch-warn'><b>PZ order — everything needed through "+esc(o.through)+"</b> (need over the next "+o.horizon+" mailings + resend allowance − your shelf − PZ stock, rounded per print sheet)</div>";
+      h+="<div class='inv-band'>";
+      Object.keys(o.by_type).sort().forEach(function(t){ h+="<div class='stat'><b>"+o.by_type[t].toLocaleString()+"</b><span>"+esc(t)+"</span></div>"; });
+      h+="</div>";
+      if(!o.lines.length){ h+="<div class='empty'>Nothing to order — everything covers the horizon.</div>"; }
+      else{
+        h+="<table class='batch-table'><tr><th>Piece</th><th>Type</th><th>Need</th><th>Our</th><th>PZ</th><th>Order</th></tr>";
+        o.lines.forEach(function(l){ h+="<tr><td>"+esc(l.code)+"</td><td>"+esc(l.type)+"</td><td>"+l.need.toLocaleString()+"</td><td>"+l.our.toLocaleString()+"</td><td>"+l.pz.toLocaleString()+"</td><td><b>"+l.order.toLocaleString()+"</b></td></tr>"; });
+        h+="</table>";
+      }
+      h+="<p class='foot-note'><a href='#' id='iBack'>← back to the forecast</a></p>";
+      $("#iOut").innerHTML=h;
+      $("#iBack").addEventListener("click",function(ev){ ev.preventDefault(); if(iForecast) iRender(iForecast); else iLoad(); });
+    }).catch(function(e){ toast(e.message); })
+      .then(function(){ btn.disabled=false; btn.textContent="Build PZ order"; });
+  });
+  $("#oBuild").addEventListener("click",function(){
+    var btn=$("#oBuild"); btn.disabled=true; btn.textContent="Computing…";
+    iApi("?order="+$("#oHorizon").value).then(function(j){
+      var o=j.order, h="";
+      h+="<div class='batch-warn'><b>Everything needed through "+esc(o.through)+"</b> — need over the next "+o.horizon+" mailings + resend allowance − your shelf − PZ stock, rounded per print sheet.</div>";
+      h+="<div class='inv-band'>";
+      Object.keys(o.by_type).sort().forEach(function(t){ h+="<div class='stat'><b>"+o.by_type[t].toLocaleString()+"</b><span>"+esc(t)+"</span></div>"; });
+      h+="</div>";
+      if(!o.lines.length){ h+="<div class='empty'>Nothing to order — everything covers the horizon.</div>"; }
+      else{
+        h+="<table class='batch-table'><tr><th>Piece</th><th>Type</th><th>Need</th><th>Our shelf</th><th>PZ</th><th>Order</th></tr>";
+        o.lines.forEach(function(l){ h+="<tr><td>"+esc(l.code)+"</td><td>"+esc(l.type)+"</td><td>"+l.need.toLocaleString()+"</td><td>"+l.our.toLocaleString()+"</td><td>"+l.pz.toLocaleString()+"</td><td><b>"+l.order.toLocaleString()+"</b></td></tr>"; });
+        h+="</table>";
+      }
+      $("#oOut").innerHTML=h;
+    }).catch(function(e){ $("#oOut").innerHTML="<div class='empty'>"+esc(e.message||"error")+"</div>"; })
+      .then(function(){ btn.disabled=false; btn.textContent="Build order"; });
+  });
+  $("#oCsv").addEventListener("click",function(){
+    fetch("/api/inventory?order="+$("#oHorizon").value+"&csv=1",{headers:authHeaders()})
+      .then(function(r){ if(!r.ok) throw new Error("download failed — refresh the batch counts first?"); return r.blob(); })
+      .then(function(b){ var a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download="pz-order.csv"; document.body.appendChild(a); a.click(); a.remove(); })
+      .catch(function(e){ toast(e.message); });
+  });
+  $("#iOrderCsv").addEventListener("click",function(){
+    fetch("/api/inventory?order="+$("#iHorizon").value+"&csv=1",{headers:authHeaders()})
+      .then(function(r){ if(!r.ok) throw new Error("download failed — refresh the batch counts first?"); return r.blob(); })
+      .then(function(b){ var a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download="pz-order.csv"; document.body.appendChild(a); a.click(); a.remove(); })
+      .catch(function(e){ toast(e.message); });
+  });
+  $$(".tab").forEach(function(t){ if(t.dataset.panel==="inventory") t.addEventListener("click",function(){ if(!iLoaded){ iLoaded=true; iLoad(); } }); });
+
+  function refresh(){ api("GET").then(function(d){DATA=d;render()}).catch(function(){}) }
+  setInterval(function(){ if(DATA && !document.hidden) refresh(); }, 60000);
+})();
+</script>
+</body>
+</html>
