@@ -575,6 +575,13 @@ function viewGate(msg){
 
 /* ── Boot ────────────────────────────────────────────────────────────────── */
 function boot(){
+  // Opened straight from disk there is no server, so nothing can load.
+  if(location.protocol==='file:'){
+    app.innerHTML='<div class="loading" style="text-align:center;line-height:1.8;padding:2rem">'+
+      'This manuscript has to be deployed to open.<br>'+
+      '<span style="color:#8e9bb5">Opening the file directly won\u2019t work \u2014 the text is served from Vercel.</span></div>';
+    return;
+  }
   app.innerHTML='<div class="loading">Opening the manuscript\u2026</div>';
   fetch('/api/manifest',{credentials:'same-origin'})
     .then(function(r){
@@ -588,7 +595,9 @@ function boot(){
       render();
     })
     .catch(function(){
-      app.innerHTML='<div class="loading">Could not load the manuscript. Refresh to try again.</div>';
+      app.innerHTML='<div class="loading" style="text-align:center;line-height:1.8;padding:2rem">'+
+        'Could not load the manuscript.<br>'+
+        '<span style="color:#8e9bb5">If this is a new deploy, check the environment variables and redeploy.</span></div>';
     });
 }
 
